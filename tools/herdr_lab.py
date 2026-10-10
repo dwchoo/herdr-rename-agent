@@ -116,6 +116,28 @@ class Lab(Verification):
         else:
             self.shim_delay_file.unlink(missing_ok=True)
 
+    # ---- shim fault injection (rule format: see tools/herdr_shim.py) -----------
+    def set_faults(self, *rules):
+        """Activate fault rules for the plugin's CLI calls (cleared by ``reset``); counters start from zero."""
+        (self.shim_dir / "fault-state.json").unlink(missing_ok=True)
+        (self.shim_dir / "faults.json").write_text(json.dumps(list(rules)))
+
+    def clear_faults(self):
+        for name in ("faults.json", "fault-state.json", "fault-state.json.tmp"):
+            (self.shim_dir / name).unlink(missing_ok=True)
+
+    def fault_events(self, since=0, phase="fault"):
+        return self.shim_calls(since, phase=phase)
+
+    def clear_handoff_debris(self):
+        """Remove handoff files / tamper leftovers that the plugin did not consume (private state dir of the sandbox)."""
+        for record in self.shim_calls(0, phase="handoff"):
+            directory = Path(record.get("env", {}).get("HERDR_PLUGIN_STATE_DIR", ""))
+            if directory.is_dir():
+                for entry in directory.iterdir():
+                    if entry.name.startswith(("agent-rename-handoff-", "decoy-", "alias-")):
+                        entry.unlink(missing_ok=True)
+
     def shim_calls(self, since=0, phase="start"):
         """Shim log records (dicts with ``argv``) from index ``since``; one per invocation for phase 'start'."""
         try:
@@ -251,14 +273,16 @@ class Lab(Verification):
 
     def reset(self, spec=None, size=(100, 32)):
         """Return the session to a known state: no popup, client size, focus on a, labels/names from spec."""
+        self.clear_faults()
         self.close_popups()
         self.set_rename_delay(0)
+        self.clear_handoff_debris()
         if tuple(self.client_size) != tuple(size):
             self.resize(*size)
             self.client_size = tuple(size)
         self.set_state(spec or {})
         self.run_cli("workspace", "focus", self.ws1)
-        self.run_cli("pane", "focus", "--pane", self.layout["a"])
+        self.run_cli("agent", "focus", self.layout["a"])
         self.pump(.4)
 
     # ---- screen ------------------------------------------------------------

@@ -339,8 +339,9 @@ def s20(lab):
 @scenario("S21", "Focus change while the popup is open does not retarget the batch (skipped if Herdr closes the popup)", spec=CHANGE_AB_D)
 def s21(lab):
     frame = open_sync(lab)
-    lab.run_cli("pane", "focus", "--pane", lab.layout["b"])  # focus moves inside the workspace
+    ok(lab.run_cli("agent", "focus", lab.layout["b"])["rc"] == 0, "focus change failed")  # focus moves inside the workspace
     lab.pump(.6)
+    ok(any(a["pane_id"] == lab.layout["b"] and a.get("focused") for a in lab.agents()), "the focus did not move to b")
     if not lab.popup_open():  # never type 'y' into an agent pane
         raise Skip("Herdr closes the popup when focus moves; later-focus retargeting cannot be exercised")
     lab.keys("y", .5)
@@ -903,6 +904,56 @@ def l05(lab):
     lab.close_popups()
 
 
+@lifecycle("L09", "In-place update: v0.1.0 installed from a tree, the tree is replaced by the current code, bin/install again "
+                  "keeps one binding per action and the recovery record, and the new dialogs open")
+def l09(lab):
+    import shutil
+    legacy = lab.root / LEGACY_TAG_DIR
+    if not (legacy / "bin/install").exists():
+        raise Skip("tag v0.1.0 could not be exported into the sandbox (no git or tag)")
+    if plugin_root(lab) is None:  # also runnable alone (--only L09)
+        lab.manage("install")
+    state = installed_state(lab)
+    lab.manage("uninstall")
+    tree = lab.root / "update-tree"
+    shutil.copytree(legacy, tree, symlinks=True, ignore=shutil.ignore_patterns(".venv"))
+    os.symlink(lab.root / ".venv", tree / ".venv")
+    lab.manage_at(tree, "install")
+    ok(plugin_root(lab) == tree.resolve(), f"v0.1.0 tree not registered: {plugins(lab)}")
+    old = installed_state(lab)
+    ok(len(old["owned"]) == 2, f"v0.1.0 should own two bindings: {old['owned']}")
+    # The update: new code replaces the old files in the same directory (what `git pull` does for the user's checkout).
+    for name in ("bin", "src"):
+        shutil.rmtree(tree / name)
+        shutil.copytree(lab.root / name, tree / name, symlinks=True, ignore=shutil.ignore_patterns("__pycache__"))
+    for name in ("herdr-plugin.toml", "pyproject.toml", "requirements.lock"):
+        shutil.copy2(lab.root / name, tree / name)
+    rc, out, err = lab.manage_at(tree, "install", expected=False)
+    ok(rc == 0, f"bin/install over the updated tree failed: {out}{err}")
+    ok(plugin_root(lab) == tree.resolve() and len([p for p in plugins(lab) if p["plugin_id"] == PLUGIN]) == 1,
+       f"registration after the update: {plugins(lab)}")
+    ok(owned_bindings(lab) == old["owned"], f"bindings changed or duplicated by the update: {owned_bindings(lab)} vs {old['owned']}")
+    ok([r.read_bytes() for r in records(lab)] == old["records"], "the recovery record changed across the update")
+    ok(lab.config.read_bytes() == old["config"], "the config changed across the update (bindings and plugin ID are unchanged)")
+    ensure_agent(lab)
+    frame = lab.open_popup("S")
+    ok(frame and lab.has("[ Yes ]"), "sync shortcut does not open the confirmation after the update\n" + lab.text())
+    lab.shot("L09-sync")
+    lab.keys("n", .6)
+    lab.close_popups()
+    frame = lab.open_popup("A")
+    ok(frame and lab.has("save") and lab.has("clear"), "rename shortcut does not open the new dialog after the update\n" + lab.text())
+    lab.keys("\x1b", .6)
+    lab.close_popups()
+    lab.manage_at(tree, "uninstall")
+    lab.manage("install")
+    import difflib
+    diff = "".join(difflib.unified_diff(state["config"].decode().splitlines(True), lab.config.read_text().splitlines(True)))
+    ok(plugin_root(lab) == lab.root.resolve() and lab.config.read_bytes() == state["config"],
+       "state not restored after the update scenario\n" + diff)
+    ok(owned_bindings(lab) == state["owned"], "bindings differ after restoring")
+
+
 @lifecycle("L06", "Later user edits survive bin/uninstall; only plugin bindings go and the legacy popup returns")
 def l06(lab):
     lab.config.write_text(lab.config.read_text() + USER_EDIT)
@@ -1160,3 +1211,6 @@ def run_suite(out: Path, codex_arguments, only: list[str] | None = None) -> int:
     }, indent=2) + "\n")
     print(f"next suite: {counts}", flush=True)
     return 0 if counts["fail"] == counts["error"] == 0 else 1
+
+
+import next_faults  # noqa: E402,F401  (registers the F, X and E scenarios; needs every name defined above)

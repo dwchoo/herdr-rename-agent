@@ -1,11 +1,11 @@
 {
   "suite": "next",
-  "date": "2026-10-11T01:01:35.879091+09:00",
+  "date": "2026-10-11T02:16:48.519193+09:00",
   "herdr_version": "0.9.3",
   "terminal": "PTY xterm-256color, truecolor, default 100x32",
   "assertions": "PLAN sections 6, 10 (planned behavior)",
   "counts": {
-    "pass": 53,
+    "pass": 104,
     "fail": 0,
     "error": 0,
     "skip": 0
@@ -59,7 +59,7 @@
         "S01-dialog",
         "S01-after"
       ],
-      "seconds": 4.5
+      "seconds": 4.7
     },
     {
       "id": "S02",
@@ -72,7 +72,7 @@
         "S02-dialog",
         "S02-after"
       ],
-      "seconds": 4.2
+      "seconds": 4.3
     },
     {
       "id": "S03",
@@ -111,7 +111,7 @@
         "S05-dialog",
         "S05-after"
       ],
-      "seconds": 4.2
+      "seconds": 4.3
     },
     {
       "id": "S06",
@@ -145,7 +145,7 @@
       "captures": [
         "S07-after"
       ],
-      "seconds": 1.6
+      "seconds": 1.7
     },
     {
       "id": "S10",
@@ -158,7 +158,7 @@
         "S10-dialog",
         "S10-after"
       ],
-      "seconds": 3.2
+      "seconds": 3.3
     },
     {
       "id": "S11",
@@ -184,7 +184,7 @@
         "S12-dialog",
         "S12-after"
       ],
-      "seconds": 4.9
+      "seconds": 5.0
     },
     {
       "id": "S13",
@@ -194,7 +194,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 5.4
+      "seconds": 5.5
     },
     {
       "id": "S14",
@@ -207,7 +207,7 @@
         "S14-dialog",
         "S14-after"
       ],
-      "seconds": 4.6
+      "seconds": 4.7
     },
     {
       "id": "S15",
@@ -220,7 +220,7 @@
         "S15-dialog",
         "S15-after"
       ],
-      "seconds": 3.4
+      "seconds": 3.3
     },
     {
       "id": "S16",
@@ -235,7 +235,7 @@
         "S16-dialog",
         "S16-after"
       ],
-      "seconds": 6.1
+      "seconds": 6.2
     },
     {
       "id": "S17",
@@ -248,7 +248,7 @@
         "S17-dialog",
         "S17-after"
       ],
-      "seconds": 4.5
+      "seconds": 4.7
     },
     {
       "id": "S18",
@@ -278,7 +278,7 @@
         "S19-dialog",
         "S19-after"
       ],
-      "seconds": 14.5
+      "seconds": 14.6
     },
     {
       "id": "S20",
@@ -301,7 +301,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 5.0
+      "seconds": 5.1
     },
     {
       "id": "S22",
@@ -313,7 +313,7 @@
       "captures": [
         "S22-small"
       ],
-      "seconds": 2.6
+      "seconds": 2.7
     },
     {
       "id": "R01",
@@ -379,7 +379,7 @@
       "captures": [
         "R06-typed"
       ],
-      "seconds": 2.6
+      "seconds": 2.7
     },
     {
       "id": "R07",
@@ -413,7 +413,7 @@
       "captures": [
         "R09-after"
       ],
-      "seconds": 2.0
+      "seconds": 2.1
     },
     {
       "id": "R10",
@@ -462,7 +462,7 @@
       "captures": [
         "S23-80cols"
       ],
-      "seconds": 2.7
+      "seconds": 2.8
     },
     {
       "id": "S24",
@@ -500,7 +500,7 @@
         "S26-dialog",
         "S26-after"
       ],
-      "seconds": 17.6
+      "seconds": 17.5
     },
     {
       "id": "S27",
@@ -524,7 +524,7 @@
       "captures": [
         "S28-stop"
       ],
-      "seconds": 37.1
+      "seconds": 37.4
     },
     {
       "id": "S29",
@@ -549,7 +549,7 @@
         "R13-resized",
         "R13-narrow"
       ],
-      "seconds": 9.3
+      "seconds": 9.4
     },
     {
       "id": "T01",
@@ -576,7 +576,585 @@
         "plugin-rename-catppuccin",
         "parity-catppuccin"
       ],
-      "seconds": 3.2
+      "seconds": 3.3
+    },
+    {
+      "id": "F01",
+      "title": "Connection lost between rows: the next row fails with an English reason, the queue stops, no extra write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F01-done"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "F02",
+      "title": "Write fails in transit and the connection stays down: row uncertain, nothing retried, rest not attempted",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F02-done"
+      ],
+      "seconds": 4.8
+    },
+    {
+      "id": "F03",
+      "title": "Write fails in transit but reads work: the unchanged name makes the row uncertain and stops the queue",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F03-done"
+      ],
+      "seconds": 4.8
+    },
+    {
+      "id": "F04",
+      "title": "A definite failure of one row does not stop the independent rows",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F04-done"
+      ],
+      "seconds": 5.2
+    },
+    {
+      "id": "F05",
+      "title": "Write applied but response lost: the row is reconciled by a read and never written twice",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F05-done"
+      ],
+      "seconds": 5.3
+    },
+    {
+      "id": "F06",
+      "title": "Write applied but the call times out: reconciled by a read, not repeated",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F06-done"
+      ],
+      "seconds": 10.4
+    },
+    {
+      "id": "F07",
+      "title": "Rename dialog: write applied, response lost; Enter again reconciles without a second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F07-uncertain"
+      ],
+      "seconds": 3.6
+    },
+    {
+      "id": "F08",
+      "title": "Rename dialog --clear: write applied, response lost; Enter again reconciles without a second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.4
+    },
+    {
+      "id": "F09",
+      "title": "Rename dialog: after an unconfirmed write the name was changed elsewhere; retry refuses, no second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F09-refused"
+      ],
+      "seconds": 9.8
+    },
+    {
+      "id": "F10",
+      "title": "Sync with a malformed pane list: English error notification, no popup, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.4
+    },
+    {
+      "id": "F11",
+      "title": "Sync with an unknown envelope type or a missing list in the agent list: error, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 6.4
+    },
+    {
+      "id": "F12",
+      "title": "Sync when every pane lookup returns malformed data: information popup with lookup failures, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F12-dialog"
+      ],
+      "seconds": 3.5
+    },
+    {
+      "id": "F13",
+      "title": "Rename dialog with malformed or unknown lookup data: visible English error, nothing can be written",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F13-malformed",
+        "F13-unknown"
+      ],
+      "seconds": 4.8
+    },
+    {
+      "id": "F14",
+      "title": "Per-pane read failures give lookup-failed rows while the other rows still sync",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F14-dialog"
+      ],
+      "seconds": 4.7
+    },
+    {
+      "id": "F15",
+      "title": "Unsupported capabilities (no pane.list, no agent.list, no --clear): clear outcome, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 13.2
+    },
+    {
+      "id": "F16",
+      "title": "Older Herdr (0.9.2) is refused with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 4.4
+    },
+    {
+      "id": "F17",
+      "title": "Newer Herdr version string with a compatible schema works normally (sync and rename)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F17-done"
+      ],
+      "seconds": 7.7
+    },
+    {
+      "id": "X01",
+      "title": "Rename dialog: the target pane is closed between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X01-refused"
+      ],
+      "seconds": 16.3
+    },
+    {
+      "id": "X02",
+      "title": "Rename dialog: the target pane is moved to another tab; refused, never followed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X02-refused"
+      ],
+      "seconds": 16.4
+    },
+    {
+      "id": "X03",
+      "title": "Rename dialog: the agent exits between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X03-refused"
+      ],
+      "seconds": 16.9
+    },
+    {
+      "id": "X04",
+      "title": "Rename dialog: the agent is restarted (replaced) between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X04-refused"
+      ],
+      "seconds": 26.7
+    },
+    {
+      "id": "X05",
+      "title": "Sync: a pane is moved to another tab after the preview; skipped, the pane is not followed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X05-done"
+      ],
+      "seconds": 18.8
+    },
+    {
+      "id": "X06",
+      "title": "Sync: an agent exits after the preview; its row is skipped, others sync",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X06-done"
+      ],
+      "seconds": 19.0
+    },
+    {
+      "id": "X07",
+      "title": "Sync: an agent is replaced (same name, new process) after the preview; skipped, not renamed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X07-done"
+      ],
+      "seconds": 29.3
+    },
+    {
+      "id": "X08",
+      "title": "Sync: a swap is skipped (no temporary clears) while an independent row syncs",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X08-done"
+      ],
+      "seconds": 4.3
+    },
+    {
+      "id": "X09",
+      "title": "Sync: a 4-cycle of names is a conflict-only information popup with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.3
+    },
+    {
+      "id": "X10",
+      "title": "Sync: a pane that arrives in the workspace after the preview is not added",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 20.8
+    },
+    {
+      "id": "X11",
+      "title": "Sync scrolling in a short client keeps Yes/No visible; the last row is reachable; Y still applies",
+      "theme": "catppuccin",
+      "size": "100x24",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X11-top",
+        "X11-bottom"
+      ],
+      "seconds": 6.8
+    },
+    {
+      "id": "X13",
+      "title": "Large multi-pane sync plan travels through the private file; file is 0600 and removed once consumed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X13-dialog"
+      ],
+      "seconds": 5.4
+    },
+    {
+      "id": "X14",
+      "title": "Large rename snapshot travels through the private file, is consumed and removed, and the rename works",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.8
+    },
+    {
+      "id": "X15",
+      "title": "Plan above 4 MiB: clear English error, no popup, zero writes, no file left",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 7.9
+    },
+    {
+      "id": "X16",
+      "title": "Tampered handoff: file mode changed to 0644 is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X16-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X17",
+      "title": "Tampered handoff: file replaced by a symlink is refused, never followed, its target untouched",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X17-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X18",
+      "title": "Tampered handoff: garbage content is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X18-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X19",
+      "title": "Tampered handoff: truncated content is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X19-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X20",
+      "title": "Tampered handoff: a second hard link (link count 2) is refused; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X20-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X21",
+      "title": "Tampered handoff: well-formed JSON for another workspace is refused; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X21-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X22",
+      "title": "Tampered handoff: a pointer to another directory is refused; the file is not touched; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X22-refused"
+      ],
+      "seconds": 3.8
+    },
+    {
+      "id": "X23",
+      "title": "Tampered handoff: a path-traversal pointer name is refused; the file is not touched; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X23-refused"
+      ],
+      "seconds": 3.8
+    },
+    {
+      "id": "X24",
+      "title": "Popup launch failure after a large handoff: no popup, no writes, the private file is removed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.7
+    },
+    {
+      "id": "X25",
+      "title": "Sync context: workspace-only and pane-only contexts work; missing or malformed context is refused",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X25-workspace-only",
+        "X25-pane-only"
+      ],
+      "seconds": 4.8
+    },
+    {
+      "id": "X26",
+      "title": "Frozen context wins over later focus: sync of workspace 1 while workspace 2 is focused; rename of pane a while b is focused",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 8.2
+    },
+    {
+      "id": "X27",
+      "title": "Rename dialog process restores every terminal mode on success, cancel, error screen and a crash",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 7.2
+    },
+    {
+      "id": "X28",
+      "title": "Sync dialog process restores every terminal mode on success, cancel, error screen and a crash",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 10.1
+    },
+    {
+      "id": "E01",
+      "title": "Editor: opens at the end with the name (typing appends: no replace-on-type); char/word/Home/End movement",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E01-end"
+      ],
+      "seconds": 7.6
+    },
+    {
+      "id": "E02",
+      "title": "Editor: every kill and yank key (Ctrl+W/K/U/Y/D, Alt+D, Alt+Backspace, Delete, Backspace)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E02-end"
+      ],
+      "seconds": 7.7
+    },
+    {
+      "id": "E03",
+      "title": "Editor: grapheme clusters (combining marks, CJK, emoji with skin-tone modifier) move and delete as units",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E03-end"
+      ],
+      "seconds": 6.2
+    },
+    {
+      "id": "E04",
+      "title": "Editor: long text scrolls the viewport with the cursor, matching the model",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E04-end",
+        "E04-home"
+      ],
+      "seconds": 16.6
+    },
+    {
+      "id": "E05",
+      "title": "Editor paste: CR, LF, CRLF and Tab become spaces, other controls become U+FFFD, nothing is written",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E05-pasted"
+      ],
+      "seconds": 4.2
+    },
+    {
+      "id": "E06",
+      "title": "Editor with an absent name: empty input and hint; empty Enter is a no-op; a typed name sets it",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E06-open"
+      ],
+      "seconds": 4.2
     },
     {
       "id": "L01",
@@ -586,7 +1164,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 0.5
+      "seconds": 0.6
     },
     {
       "id": "L02",
@@ -609,7 +1187,7 @@
         "L03-rename",
         "L03-sync"
       ],
-      "seconds": 7.5
+      "seconds": 7.6
     },
     {
       "id": "L04",
@@ -619,7 +1197,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 0.8
+      "seconds": 0.7
     },
     {
       "id": "L05",
@@ -632,6 +1210,18 @@
         "L05-legacy-rename"
       ],
       "seconds": 4.5
+    },
+    {
+      "id": "L09",
+      "title": "In-place update: v0.1.0 installed from a tree, the tree is replaced by the current code, bin/install again keeps one binding per action and the recovery record, and the new dialogs open",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "L09-sync"
+      ],
+      "seconds": 4.6
     },
     {
       "id": "L06",
@@ -661,7 +1251,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 0.7
+      "seconds": 0.8
     },
     {
       "id": "T02",
@@ -674,7 +1264,7 @@
         "T02-rename",
         "T02-sync"
       ],
-      "seconds": 3.5
+      "seconds": 3.7
     },
     {
       "id": "T04",
@@ -688,7 +1278,7 @@
         "plugin-rename-dracula",
         "parity-dracula"
       ],
-      "seconds": 3.2
+      "seconds": 3.3
     }
   ]
 }

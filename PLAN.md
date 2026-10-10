@@ -254,7 +254,7 @@ Keep the current installation working until the new version passes all gates. De
 | P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S29 (keyboard and mouse Yes/No, Yes regression S11-S17). |
 | P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T04 captures. |
 | P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L08. |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 53 pass, 0 skip, 0 fail, 0 error (H01/S07/S28/S29 verified through the sandbox CLI shim), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 104 pass, 0 skip, 0 fail, 0 error (every section 10 row mapped to sandbox scenarios in [docs/verification-coverage.md](docs/verification-coverage.md); fault injection, handoff tampering and target-change scenarios F/X/E run through the sandbox CLI shim, as do H01/S07/S28/S29), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 
@@ -278,6 +278,8 @@ Testing layers:
 - prompt_toolkit TUI tests through a real PTY (existing approach).
 - Real Herdr PTY E2E in the bubblewrap harness, extended to mouse, `--clear`, and multi-tab sync with another workspace as an unchanged control. Never rename the user's development agent in a test.
 - Side-by-side native/plugin captures in the same theme and size (T03, T04, 100x32, default and Dracula; see [results](docs/verification-results.md)).
+
+[docs/verification-coverage.md](docs/verification-coverage.md) maps every row and scenario above to the real-Herdr sandbox scenarios (and unit tests) that verify it and lists what cannot be exercised against a real Herdr.
 
 Historical 225/42/8 counts are baseline only; current results are recorded separately in [docs/verification-results.md](docs/verification-results.md). Matrix scenarios not observable in Herdr 0.9.3 (notification wording) are listed as skips there.
 

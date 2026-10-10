@@ -1,0 +1,24 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  is allowed to do                ▕││  >_ OpenAI Codex (v0.162.1)      ▕│
+ · second-ws             ││  /model - choose what model and  ▕││     /workspace/agent-rename      ▕│
+                         ││  reas┌Sync agent name──────────────────────────────────────────┐      ▕│
+                         ││  /rev│ Sync agent names · workspace "agent-rename" · 6 panes   │ task ▕│
+                         ││  find│  Tab      Pane  Agent     → Pane name Status            │ds:   ▕│
+                         ││      │▸ 1        w1:p1 old-a     → new-a     change            │      ▕│
+                         ││      │  1        w1:p3 (unnamed)   —         no pane name      │d file▕│
+                         ││› 1uk │  1        w1:p2 old-b     → new-b     change            │x     ▕│
+                         ││      │  2 second w1:p4 old-d     → new-d     change            │sion  ▕│
+ new                 menu││  GPT-│  2 second w1:p6 (unnamed)   —         no pane name      │      ▕│
+─────────────────────────│└──────│  2 second w1:p5 old-e     → new-e     change            │ Codex▕│
+ agents           grouped│┌──────│ 1 · w1:p1 · old-a → new-a                               │      ▕│
+                         ││bash-5│                                                         │ and  ▕│
+ · agent-rename · 1     ▕││      │ 4 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
+   old-a                ▕││      │ Yes renames 4 agents to the pane names shown.           │es and▕│
+ · agent-rename · 1     ▕││      │                    [ Yes ]  [ No ]                      │      ▕│
+   old-b                ▕││      │ ↑↓ PgUp/PgDn scroll · ←→ select · Y/N · Esc             │      ▕│
+ · agent-rename · second▕││      └─────────────────────────────────────────────────────────┘      ▕│
+   old-d                ▕││                                   ││› Ask Codex to do anything        ▕│
+ · agent-rename · second▕││                                   ││                                  ▕│
+   old-e                ▕││                                   ││  GPT-6.1-Sol default …  ⚠ 1 · f2 ▕│
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

@@ -22,7 +22,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SANDBOX_ROOT = Path("/workspace/agent-rename")
 NEXT_RUN = "docs/next-run"  # in-sandbox evidence directory for the new suite
-TIMEOUTS = {"old": 240, "next": 1500, "all": 1800}
+TIMEOUTS = {"old": 240, "next": 3300, "all": 3600}
 
 
 def native_codex(value: str | None) -> Path:

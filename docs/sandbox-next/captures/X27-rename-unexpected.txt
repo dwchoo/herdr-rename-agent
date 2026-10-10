@@ -1,0 +1,39 @@
+C[0m[?12l[?25h[6D[2A[J[0m[?7h[?1049l[?1000l[?1015l[?1006l[?1003l[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m11[0m, in [35m<module>[0m
+    raise SystemExit([31maction.main[0m[1;31m()[0m)
+                     [31m~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/workspace/agent-rename/src/herdr_agent_rename/action.py"[0m, line [35m129[0m, in [35mmain[0m
+    [31masyncio.run[0m[1;31m(dialog(args.action.removeprefix("dialog-"), dict(os.environ)))[0m
+    [31m~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/home/dwchoo/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py"[0m, line [35m205[0m, in [35mrun[0m
+    return [31mrunner.run[0m[1;31m(main)[0m
+           [31m~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/home/dwchoo/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py"[0m, line [35m128[0m, in [35mrun[0m
+    return [31mself._loop.run_until_complete[0m[1;31m(task)[0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/home/dwchoo/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py"[0m, line [35m720[0m, in [35mrun_until_complete[0m
+    return [31mfuture.result[0m[1;31m()[0m
+           [31m~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/workspace/agent-rename/src/herdr_agent_rename/action.py"[0m, line [35m119[0m, in [35mdialog[0m
+    success = [1;31mawait run_dialog(controller)[0m
+              [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/workspace/agent-rename/src/herdr_agent_rename/ui/__init__.py"[0m, line [35m22[0m, in [35mrun_dialog[0m
+    return [1;31mawait RenameDialog(controller).run_async()[0m
+           [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/workspace/agent-rename/src/herdr_agent_rename/ui/rename.py"[0m, line [35m341[0m, in [35mrun_async[0m
+    await self.app.run_async(
+    ...<2 lines>...
+    )
+  File [35m"/workspace/agent-rename/.venv/lib/python3.14/site-packages/prompt_toolkit/application/application.py"[0m, line [35m886[0m, in [35mrun_async[0m
+    return [1;31mawait _run_async(f)[0m
+           [1;31m^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/workspace/agent-rename/.venv/lib/python3.14/site-packages/prompt_toolkit/application/application.py"[0m, line [35m746[0m, in [35m_run_async[0m
+    result = [1;31mawait f[0m
+             [1;31m^^^^^^^[0m
+  File [35m"/workspace/agent-rename/src/herdr_agent_rename/ui/rename.py"[0m, line [35m252[0m, in [35m_submit[0m
+    if [1;31mawait self.controller.submit(self.editor.text)[0m:
+       [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"<string>"[0m, line [35m6[0m, in [35m_boom[0m
+    raise RuntimeError("injected unexpected failure")
+[1;35mRuntimeError[0m: [35minjected unexpected failure[0m
+

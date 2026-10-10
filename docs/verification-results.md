@@ -25,8 +25,10 @@ Recorded 2026-10-11, Asia/Seoul:
 464 passed
 
 .venv/bin/python tools/verify_sandbox.py --run --suite next
-53 pass, 0 fail, 0 error, 0 skip (53 scenarios); exit code 0
+104 pass, 0 fail, 0 error, 0 skip (104 scenarios); exit code 0
 ```
+
+Every row and scenario phrase of the PLAN section 10 matrix is mapped to the sandbox scenarios that verify it in [verification-coverage.md](verification-coverage.md); the few items that cannot be exercised against a real Herdr, with reasons, are listed at its end.
 
 Raw data: [actual-results.json](sandbox-next/actual-results.json), [run.json](sandbox-next/run.json), [isolation.json](sandbox-next/isolation.json), captures in [sandbox-next/captures/](sandbox-next/captures/) (TXT, key states also PNG). The R1 investigation that fixed the target behavior is in [r1-source-findings](r1-source-findings.md) and [r1-live-findings](r1-live-findings.md) (`tools/probe_r1.py --run`).
 
@@ -39,10 +41,13 @@ The unit suite covers the editor port, theme resolution, workspace planner and e
 | S (sync) | 27 | 27 pass | S01-S06: scope across tabs with another workspace unchanged, mixed rows, unnamed agent, duplicate labels, name held in another workspace, conflict-only information popup. S07: no eligible rows, no popup, no writes. S10-S22: default No, Tab/Left/Right/Y/N/Esc/Ctrl+C, mouse Yes/No, repeated Enter/Y and double click, completion table with Close, focus change, 60 x 16 client. S23-S25: 80-column layout, 50-column resize message, resize while open. S26-S27: stale previews (changed label, closed pane, renamed agent, cleared label). S28-S29: Stop during a batch and Stop latched with Yes, made deterministic with the CLI shim's rename delay (see below). |
 | R (rename) | 13 | 13 pass | Save, trim, Ctrl+C clear-only, empty save runs `--clear`, Esc, mouse save/clear/cancel, click elsewhere cancels, invalid paste, name held by another agent, 40 x 10 terminal, resize while open. |
 | T (theme) | 4 | 4 pass | T01-T02: default and Dracula captures with palette-color checks. T03-T04: side-by-side parity of Herdr's native `rename pane` overlay and the plugin rename popup (default and Dracula, 100 x 32); see the next section. |
-| L (lifecycle) | 8 | 8 pass | Dry-run, fresh install with legacy migration, shortcuts open the new dialogs, repeated install, rollback cycle with `v0.1.0` (new, v0.1.0, new), later user edits survive uninstall, repeated uninstall, retained recovery record. |
+| L (lifecycle) | 9 | 9 pass | Dry-run, fresh install with legacy migration, shortcuts open the new dialogs, repeated install, rollback cycle with `v0.1.0` (new, v0.1.0, new), in-place update (L09: a `v0.1.0` tree replaced by the current code, `bin/install` again: same bindings, config and recovery record, new dialogs), later user edits survive uninstall, repeated uninstall, retained recovery record. |
 | H (harness) | 1 | 1 pass | Self-test of the test-only CLI shim (logging, transparency, rename-only delay). |
+| F (faults) | 17 | 17 pass | Shim fault injection against the real server. F01-F03: connection lost between rows, write lost in transit with the connection down or up (failed/uncertain row with an English reason, later rows not attempted, no extra writes, Close works). F04: a definite row failure does not stop the others. F05-F06: write applied but the response lost or timed out: reconciled by a read, one request per row. F07-F09: the same for the rename dialog and for `--clear`, and a refusal when the name changed in between. F10-F13: malformed pane list, unknown or incomplete envelopes, malformed lookups (information popup), rename dialog with malformed lookups. F14: per-pane read failures. F15-F17: missing capabilities, version 0.9.2, version string `0.9.4 (abc123)`. |
+| X (targets, handoff, context, terminal) | 27 | 27 pass | X01-X04: rename dialog target closed, moved, exited, replaced between open and Enter. X05-X07: the same for a sync preview. X08-X09: swap and 4-cycle. X10: a pane arriving after the preview. X11: scrolling in a short client. X13-X14: large sync plan and rename snapshot through the private file. X15: above 4 MiB. X16-X23: tampered handoffs (mode 0644, symlink, garbage, truncation, second hard link, wrong workspace, pointer to another directory, path traversal). X24: failed popup launch cleans up. X25-X26: invocation context (workspace-only, pane-only, missing/malformed, frozen against later focus). X27-X28: terminal modes restored by the dialog processes (success, cancel, error screen, injected failures). |
+| E (editor) | 6 | 6 pass | The editor inside the real popup compared with the ported editor model after every key: movement and no replace-on-type (E01), all kill/yank keys (E02), graphemes (E03), viewport scrolling (E04), paste normalization (E05), absent name (E06). |
 
-Skips: none. Four scenarios rely on the test-only CLI shim (`tools/herdr_shim.py`, sandbox only; mechanism in [verification.md](verification.md#next-suite-current-revision-plan-section-10-scenarios)):
+Skips: none. The F series and most of the X series, and four older scenarios, rely on the test-only CLI shim (`tools/herdr_shim.py`, sandbox only; mechanism and fault rules in [verification.md](verification.md#next-suite-current-revision-plan-section-10-scenarios)). The four older uses:
 
 - **H01**: the shim self-check. The plugin's popup open produces logged CLI calls, the shim output equals the real binary's, and the 400 ms delay applies only to `agent rename`.
 - **S07**: Herdr 0.9.3's headless client draws no toast, so the notification is checked in the shim log: exactly one `notification show` with "All agent names already match their pane names.", no `plugin pane open`, no `agent rename`, and no observable write.
@@ -50,6 +55,10 @@ Skips: none. Four scenarios rely on the test-only CLI shim (`tools/herdr_shim.py
 - **S29**: Ctrl+C written together with Yes; zero `agent rename` calls in the log, all seven rows "not attempted".
 
 Repeated isolated runs after the change (`--only S28` / `--only S29`, scratch `--output`): S28 5/5 pass, S29 5/5 pass. The earlier S29 intermittent failure and S28's delay search no longer exist.
+
+The 51 scenarios added for the coverage matrix (F01-F17, X01-X11, X13-X28, E01-E06, L09) each passed in three separate isolated sandbox runs (`--only F,X,E,L09`, scratch `--output`: 51/51, 51/51, 51/51), before the full run above. No runtime (`src/`) bug was found by them; the changes are in `tools/` (shim, lab, scenarios) and docs.
+
+Hardening of the harness found while adding them: `Lab.reset` and scenario S21 moved focus with `pane focus --pane`, which Herdr 0.9.3 does not accept without a direction, so focus silently stayed where an earlier scenario left it; both now use `agent focus`, and S21 asserts that the focus really moved to pane b before confirming.
 
 ## Native / plugin parity (T03, T04)
 
@@ -80,7 +89,8 @@ Remaining differences, not hidden by the checks:
 - Mouse works only where Herdr forwards it to the popup (when the popup enables mouse reporting). Only left press and wheel were exercised; right/middle/drag/motion and border clicks were not.
 - Herdr closes a popup when the workspace focus changes; S21 is written to skip in that case (it passed, so the popup survived).
 - Only the default and Dracula themes, 100 x 32 plus the listed sizes, and one outer terminal were captured. Native/plugin parity (T03/T04) was measured at 100 x 32 only. `auto_switch = true` assumes dark and was not exercised.
-- Idle Codex agents only; behavior with working agents or other agent kinds, and `--clear` on real Claude agents, is unverified. Timeout or disconnect after a mutation was covered by unit tests, not inside real Herdr.
+- Idle Codex agents only; behavior with working agents or other agent kinds, and `--clear` on real Claude agents, is unverified.
+- Faults are injected between the plugin and the real server by the test-only shim (the server is not stopped, no real newer Herdr exists, the real server never emits malformed envelopes). A timeout or disconnect after a mutation, uncertain `--clear`, unknown envelopes, missing capabilities and large/tampered handoffs are therefore verified in the sandbox (F, X series) but as shim-simulated transport behavior. The private handoff file's owner check cannot be forged without privileges and remains unit-tested. See [verification-coverage.md](verification-coverage.md#items-not-exercisable-against-a-real-herdr).
 - Popup-open latency was measured only for the v0.1.0 runtime (about 0.26 s to a drawn dialog, [r1-live-findings](r1-live-findings.md#6-popup-open-latency-current-plugin)); no figure is recorded for the current runtime.
 - Python 3.14.7 only. The `python3 -m venv` fallback could not run on this host (no `ensurepip`); the `uv` path was used. Newer Herdr versions need their own checks.
 - Deployment to the user's live environment (`bin/setup`, `bin/install`, config reload) is pending the user's authorization; no live agent was renamed or touched.

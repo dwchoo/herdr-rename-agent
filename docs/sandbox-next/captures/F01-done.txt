@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││                                  ▕│
+ · second-ws             ││  /status - show current session  ▕││  >_ OpenAI Codex (v0.162.1)      ▕│
+                         ││  configuration                   ▕││     /workspace/agent-rename      ▕│
+                         ││  /permissions - choose what Codex▕││                                  ▕│
+                         ││  is a┌Sync agent name──────────────────────────────────────────┐ task ▕│
+                         ││  /mod│ Sync agent names · workspace "agent-rename" · 6 panes   │ds:   ▕│
+                         ││  reas│  Tab      Pane  Agent     → Pane name Status            │      ▕│
+                         ││  /rev│  1        w1:p1 old-a     → new-a     synced            │d file▕│
+                         ││  find│  1        w1:p3 (unnamed)   —         skipped: no pan…  │x     ▕│
+                         ││      │  1        w1:p2 old-b     → new-b     failed: Could n…  │sion  ▕│
+                         ││      │  2 second w1:p4 old-d     → new-d     not attempted     │      ▕│
+                         ││› 1uk │  2 second w1:p6 (unnamed)   —         skipped: no pan…  │ Codex▕│
+                         ││      │▸ 2 second w1:p5 old-e     → new-e     not attempted     │      ▕│
+ new                 menu││  GPT-│                                                         │ and  ▕│
+─────────────────────────│└──────│                                                         │      ▕│
+ agents           grouped│┌──────│                                                         │es and▕│
+                         ││bash-5│                                                         │      ▕│
+ · agent-rename · 1      ││      │                                                         │      ▕│
+   new-a                 ││      │ 2 second · w1:p5 · old-e → new-e · Stopped: Could not   │      ▕│
+ · agent-rename · 1      ││      │ connect to Herdr.                                       │      ▕│
+   old-b                 ││      │ 4 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
+ · agent-rename · second ││      │ 1 synced, 2 skipped, 1 failed, 2 not attempted.         │ · f2 ▕│
+   old-d                 ││      │                       [ Close ]                         │      ▕│
+ · agent-rename · second ││      │ ↑↓ PgUp/PgDn scroll · Enter/Esc: close                  │      ▕│
+   old-e                 ││      └─────────────────────────────────────────────────────────┘      ▕│
+ · second-ws             ││                                   ││                                  ▕│
+   old-f                 ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

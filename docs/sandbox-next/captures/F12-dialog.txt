@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││                                  ▕│
+ · second-ws             ││  /status - show current session  ▕││  >_ OpenAI Codex (v0.162.1)      ▕│
+                         ││  configuration                   ▕││     /workspace/agent-rename      ▕│
+                         ││  /permissions - choose what Codex▕││                                  ▕│
+                         ││  is a┌Sync agent name──────────────────────────────────────────┐ task ▕│
+                         ││  /mod│ Sync agent names · workspace "agent-rename" · 6 panes   │ds:   ▕│
+                         ││  reas│  Tab      Pane  Agent     → Pane name Status            │      ▕│
+                         ││  /rev│▸ 1        w1:p1 old-a     → new-a     lookup failed     │d file▕│
+                         ││  find│  1        w1:p3 (unnamed)   —         no pane name      │x     ▕│
+                         ││      │  1        w1:p2 old-b     → new-b     lookup failed     │sion  ▕│
+                         ││      │  2 second w1:p4 old-d     → new-d     lookup failed     │      ▕│
+                         ││› 1uk │  2 second w1:p6 (unnamed)   —         no pane name      │ Codex▕│
+                         ││      │  2 second w1:p5 old-e     → new-e     lookup failed     │      ▕│
+ new                 menu││  GPT-│                                                         │ and  ▕│
+─────────────────────────│└──────│                                                         │      ▕│
+ agents           grouped│┌──────│                                                         │es and▕│
+                         ││bash-5│                                                         │      ▕│
+ · agent-rename · 1      ││      │                                                         │      ▕│
+   old-a                 ││      │ 1 · w1:p1 · old-a → new-a · This pane's details could   │      ▕│
+ · agent-rename · 1      ││      │ not be read in a supported form.                        │      ▕│
+   old-b                 ││      │ 0 change · 0 matches · 2 skipped · 4 conflicts/errors   │      ▕│
+ · agent-rename · second ││      │ Nothing can be synced. Review the rows above, then      │ · f2 ▕│
+   old-d                 ││      │                       [ Close ]                         │      ▕│
+ · agent-rename · second ││      │ ↑↓ PgUp/PgDn scroll · Enter/Esc: close                  │      ▕│
+   old-e                 ││      └─────────────────────────────────────────────────────────┘      ▕│
+ · second-ws             ││                                   ││                                  ▕│
+   old-f                 ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘
