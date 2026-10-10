@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ tester ───────────────────────────┐┌───────────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││bash-5.2$                          │
+ · second-ws             ││  /status - show current session  ▕││                                   │
+                         ││  configuration                   ▕││                                   │
+                         ││  /permissions - choose what Codex▕││                                   │
+                         ││  is allowed to do                ▕││                                   │
+                         ││  /model - choose what model and  ▐││                                   │
+                         ││  reasoning effort to use         ▐││                                   │
+                         ││  /rev┌Sync agent name───────────────────────────────────────────┐      │
+                         ││  find│ The pane name will be used as the agent name.            │      │
+                         ││      │                                                          │      │
+                         ││      │ Current agent name:                                      │      │
+                         ││› 1uk │ alpha                                                    │      │
+                         ││      │ New agent name:                                          │      │
+ new                 menu││  GPT-│ tester                                                   │      │
+─────────────────────────│└──────│                                                          │      │
+ agents           grouped│┌ docs-│                                                          │      │
+                         ││bash-5│                                                          │      │
+ · agent-rename · 1      ││      │                                                          │      │
+   alpha                 ││      │                                                          │      │
+ · agent-rename · second ││      │                                         [ Yes ]  [ No ]  │      │
+   beta                  ││      └──────────────────────────────────────────────────────────┘      │
+ · second-ws             ││                                   ││                                   │
+   gamma                 ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘
