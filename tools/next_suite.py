@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import subprocess
 import time
 import tomllib
 import traceback
@@ -30,12 +31,12 @@ Scenario = namedtuple("Scenario", "id title theme size spec fn")
 SCENARIOS: list[Scenario] = []
 AGENTS = ("a", "b", "d", "e", "f")
 SCENARIO_TIMEOUT = 75
-TIMEOUTS = {"S28": 300, "S29": 150, "S26": 120}
+TIMEOUTS = {"S26": 120}
 LIFECYCLE = "lifecycle"  # pseudo-theme: these scenarios share one fresh, un-installed session and run in order
 # Key UI states that also get a PNG (everything else is TXT only).
 PNG_KEEP = {"T01-rename", "T01-sync", "T02-rename", "T02-sync", "R01-open", "S10-dialog", "S27-running", "S20-after",
             "native-pane-rename-catppuccin", "plugin-rename-catppuccin", "native-pane-rename-dracula",
-            "plugin-rename-dracula", "S06-dialog", "S22-small", "R12-small", "S23-80cols", "R13-resized", "S25-done", "S28-stop-0ms"}
+            "plugin-rename-dracula", "S06-dialog", "S22-small", "R12-small", "S23-80cols", "R13-resized", "S25-done", "S28-stop"}
 
 
 def base(**over):
@@ -176,40 +177,75 @@ def screen_flat(lab):
     return visible + " " + lab.raw[-20000:].decode("utf-8", "replace")
 
 
-@scenario("H01", "Harness self-test: a Herdr notification toast is observable on the client screen")
+ALL_MATCH = "All agent names already match their pane names."
+
+
+def renames(calls):
+    return [c for c in calls if any(c["argv"][i:i + 2] == ["agent", "rename"] for i in range(len(c["argv"])))]
+
+
+def notifications(calls):
+    return [c for c in calls if c["argv"][:2] == ["notification", "show"]]
+
+
+def popup_opens(calls):
+    return [c for c in calls if c["argv"][:3] == ["plugin", "pane", "open"]]
+
+
+def via_shim(lab, *argv):
+    """Run a CLI command through the shim exactly as the plugin's environment would."""
+    env = dict(lab.env, HERDR_SHIM_DIR=str(lab.shim_dir), HERDR_SHIM_REAL=lab.binary)
+    started = time.monotonic()
+    result = subprocess.run([str(lab.shim_exe), "--session", lab.name, *argv], env=env, stdin=subprocess.DEVNULL,
+                            capture_output=True, text=True, timeout=20)
+    return result, time.monotonic() - started
+
+
+@scenario("H01", "Harness self-test: the CLI shim logs plugin calls, is transparent, and delays only agent rename on request")
 def h01(lab):
-    seen = False
-    for position in ("top-right", "bottom-right"):
-        r = lab.run_cli("notification", "show", "harness-toast-probe", "--body", "probe body", "--position", position)
-        seen = lab.until(lambda: "harness-toast-probe" in screen_flat(lab) or lab.raw_has("harness-toast-probe"), 3, .05)
-        lab.shot(f"H01-toast-{position}")
-        if seen:
-            break
-    ok(r["rc"] == 0, f"notification show failed: {r['stderr']}")
-    if not seen:
-        raise Skip("Herdr 0.9.3 headless client draws no toast and emits no notification text; "
-                   "notification wording cannot be asserted (only 'no popup, no writes')")
+    # 1. The plugin really runs through the shim: opening the rename popup makes logged CLI calls.
+    mark = lab.shim_mark()
+    open_rename(lab)
+    lab.close_popups()
+    seen = lab.shim_calls(mark)
+    ok(seen, "the plugin made no CLI call through the shim (HERDR_BIN_PATH not honored)")
+    ok(all(c["argv"][:2] != ["agent", "rename"] for c in seen), "opening the rename dialog must not write")
+    # 2. Transparent: same output and exit code as the real binary; start and end records are logged.
+    mark = lab.shim_mark()
+    shimmed, _ = via_shim(lab, "agent", "list")
+    real = lab.run_cli("agent", "list")
+    ok(shimmed.returncode == real["rc"] == 0 and shimmed.stdout.strip() == real["stdout"], "shim changed `agent list` output")
+    records = lab.shim_calls(mark, phase=None)
+    ok([(r["phase"], r["argv"][-2:]) for r in records] == [("start", ["agent", "list"]), ("end", ["agent", "list"])]
+       and records[-1]["rc"] == 0, f"unexpected shim records {records}")
+    # 3. The delay applies to `agent rename` only and only when requested.
+    pane, name = lab.layout["a"], lab.agent_name("a")
+    _, plain = via_shim(lab, "agent", "rename", pane, name)
+    lab.set_rename_delay(400)
+    _, slow = via_shim(lab, "agent", "rename", pane, name)
+    _, other = via_shim(lab, "agent", "list")
+    lab.set_rename_delay(0)
+    ok(plain < .3 and slow >= .4 and other < .3, f"delay knob misbehaves: plain={plain:.2f}s slow={slow:.2f}s other={other:.2f}s")
+    ok(lab.agent_name("a") == name, "self-test rename changed the name")
 
 
 @scenario("S07", "No eligible rows: notification, no popup, no writes",
           spec=base(a=("old-a", "old-a"), b=(None, "old-b"), d=("old-d", "old-d")))
 def s07(lab):
     before = lab.fingerprint()
-    # Is a toast observable at all in this harness? (see H01)
-    lab.run_cli("notification", "show", "harness-toast-probe")
-    observable = lab.until(lambda: "harness-toast-probe" in screen_flat(lab), 3, .05)
-    lab.pump(5.5)  # let the probe toast expire
+    mark = lab.shim_mark()
     lab.keys("\x02", .15)
-    import os
     os.write(lab.fd, b"S")
-    seen = lab.until(lambda: "pane names" in screen_flat(lab) or lab.popup_open(), 5, .05)
+    # The headless client draws no toast, so the plugin's own `notification show` call is read from the shim log.
+    lab.until(lambda: notifications(lab.shim_calls(mark)), 5, .05)
+    lab.pump(.6)
     lab.shot("S07-after")
-    ok(not lab.popup_open(), "popup opened although nothing needs renaming\n" + lab.text())
+    calls = lab.shim_calls(mark)
+    shown = [c["argv"] for c in notifications(calls)]
+    ok(shown == [["notification", "show", ALL_MATCH]], f"expected exactly one notification with {ALL_MATCH!r}, saw {shown}")
+    ok(not popup_opens(calls) and not lab.popup_open(), f"a popup was opened although nothing needs renaming: {calls}\n" + lab.text())
+    ok(not renames(calls), f"agent rename was called: {renames(calls)}")
     assert_unchanged(lab, before, "no-eligible sync")
-    if not (seen and "already match" in screen_flat(lab)):
-        if not observable:
-            raise Skip("no popup and no writes (verified), but notification toasts are not observable on the captured screen")
-        raise AssertionError("missing 'All agent names already match their pane names.' notification\n" + lab.text())
 
 
 # ---- sync: selection --------------------------------------------------------------------
@@ -617,51 +653,62 @@ def s27(lab):
 S28_SPEC = base(a=("new-a", "old-a"), b=("new-b", "old-b"), d=("new-d", "old-d"), e=("new-e", "old-e"))
 
 
-def stop_attempt(lab, extra, delay):
-    """Yes, then Ctrl+C (Stop; Herdr holds a lone Esc for >170 ms) ``delay`` seconds later (same write when 0). Returns (synced, not_attempted, text, names)."""
+RENAME_DELAY_MS = 400
+
+
+def run_batch(lab, extra, stop):
+    """Yes, then (``stop``) Ctrl+C in a separate write or in the same write as Yes.
+
+    The shim delays every `agent rename` by RENAME_DELAY_MS, so a 7-row batch takes ~3 s. For the mid-batch Stop,
+    Ctrl+C is sent as soon as the shim logs the second rename (row 1 finished, row 2 sleeping in the shim).
+    Returns (synced, untouched, summary text, shim records of the batch, number of renames started at Stop time).
+    """
     lab.reset(S28_SPEC)
     for pane in extra:
         lab.run_cli("agent", "rename", pane, "--clear")
+    lab.set_rename_delay(RENAME_DELAY_MS)
     open_sync(lab)
     ok(lab.has("[ Yes ]"), "confirm dialog missing\n" + lab.text())
-    if delay == 0:
+    mark = lab.shim_mark()
+    started_at_stop = None
+    if stop == "with-yes":
         os.write(lab.fd, b"y\x03")
     else:
         os.write(lab.fd, b"y")
-        time.sleep(delay)
+        # The shim logs a rename on entry, before its delay: the second entry means row 2 is in flight (and row 1 is done).
+        in_flight = lab.until(lambda: len(renames(lab.shim_calls(mark))) >= 2, 8, .01)
+        ok(in_flight, "the second row's rename never started\n" + lab.text())
+        started_at_stop = len(renames(lab.shim_calls(mark)))
         os.write(lab.fd, b"\x03")
-    lab.until(lambda: not lab.popup_open() or lab.has("[ Close ]"), 15)
+    lab.until(lambda: not lab.popup_open() or lab.has("[ Close ]"), 20)
     lab.pump(.3)
     text = frame_text(lab) if lab.popup_open() else ""
-    lab.shot(f"S28-stop-{int(delay * 1000)}ms")
+    lab.shot(f"{lab.current}-stop")
     lab.dismiss()
+    lab.set_rename_delay(0)
     targets = {lab.layout[k]: f"new-{k}" for k in ("a", "b", "d", "e")}
     targets.update({pane: f"new-x{i}" for i, pane in enumerate(extra)})
     current = {a["pane_id"]: a.get("name") for a in lab.agents()}
     synced = [p for p, name in targets.items() if current.get(p) == name]
-    untouched = [p for p, name in targets.items() if current.get(p) in (None, "") or str(current.get(p)).startswith("old-")]
+    untouched = [p for p, name in targets.items() if str(current.get(p) or "").startswith("old-") or not current.get(p)]
     ok(len(synced) + len(untouched) == len(targets), f"a row is neither synced nor untouched after Stop: {current}\n{text}")
     ok(lab.agent_name("f") == "old-f", "control agent in the other workspace changed")
     ok("failed" not in text and "uncertain" not in text, "Stop produced failed/uncertain rows\n" + text)
-    return len(synced), len(untouched), text, current
+    return len(synced), len(untouched), text, lab.shim_calls(mark), started_at_stop
 
 
-@scenario("S28", "Cancel during application: Stop leaves later rows not attempted and the in-flight row reconciled",
+@scenario("S28", "Cancel during application: Stop leaves later rows not attempted and the in-flight row finished",
           spec=S28_SPEC)
 def s28(lab):
-    seen = {}
-
     def body(extra):
         total = 4 + len(extra)
-        for delay in (.01, .02, .03, .045, .06, .08, .11, .15):
-            synced, untouched, text, _ = stop_attempt(lab, extra, delay)
-            seen[delay] = (synced, untouched)
-            if 0 < synced < total:
-                ok(untouched >= 1 and "not attempted" in text and "Canceled" in text,
-                   f"partial batch ({synced} synced) but the summary lacks 'Canceled'/'not attempted'\n{text}")
-                return
-        raise Skip("rows complete in about 20 ms each, so a Stop could not be placed reliably inside the batch "
-                   f"(delay -> (synced, untouched): {seen}); the Stop-before-first-row latch is covered by S29")
+        synced, untouched, text, calls, started = run_batch(lab, extra, "mid-batch")
+        ok(started == 2, f"expected the second row's rename in flight at Stop, saw {started} rename calls")
+        ok(len(renames(calls)) == started,
+           f"{len(renames(calls)) - started} rename call(s) were made after Stop: {[c['argv'] for c in renames(calls)]}")
+        ok((synced, untouched) == (started, total - started),
+           f"expected the in-flight row to finish and {total - started} rows untouched; got synced={synced} untouched={untouched}\n{text}")
+        ok("Canceled" in text and "not attempted" in text, f"summary lacks 'Canceled'/'not attempted'\n{text}")
     with_extra_agents(lab, 3, body)
 
 
@@ -670,13 +717,10 @@ def s28(lab):
 def s29(lab):
     def body(extra):
         total = 4 + len(extra)
-        synced, untouched, text, _ = stop_attempt(lab, extra, 0)
-        ok(synced + untouched == total, "rows unaccounted for")
-        if untouched:
-            ok("Canceled" in text and "not attempted" in text, f"summary lacks 'Canceled'/'not attempted'\n{text}")
-        else:
-            raise Skip("Ctrl+C reached the dialog only after the batch had finished; the latch could not be observed")
-        ok(synced == 0, f"{synced} rows were applied although Stop arrived in the same key batch as Yes")
+        synced, untouched, text, calls, _ = run_batch(lab, extra, "with-yes")
+        ok(not renames(calls), f"agent rename was called although Stop arrived with Yes: {[c['argv'] for c in renames(calls)]}")
+        ok((synced, untouched) == (0, total), f"synced={synced} untouched={untouched}\n{text}")
+        ok("Canceled" in text and "not attempted" in text, f"summary lacks 'Canceled'/'not attempted'\n{text}")
     with_extra_agents(lab, 3, body)
 
 

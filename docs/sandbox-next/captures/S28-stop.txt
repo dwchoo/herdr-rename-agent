@@ -9,7 +9,7 @@
                          ││  reas│  Tab      Pane  Agent     → Pane name Status            │      ▕│
                          ││  /rev│  1        w1:p1 old-a     → new-a     synced            │d file▕│
                          ││  find│  1        w1:p3 (unnamed)   —         skipped: no pan…  │x     ▕│
-                         ││      │  1        w1:pA (unnamed) → new-x2    not attempted     │sion  ▕│
+                         ││      │  1        w1:pA (unnamed) → new-x2    synced            │sion  ▕│
                          ││      │  1        w1:p9 (unnamed) → new-x1    not attempted     │      ▕│
                          ││› 1uk │  1        w1:p8 (unnamed) → new-x0    not attempted     │ Codex▕│
                          ││      │  1        w1:p2 old-b     → new-b     not attempted     │      ▕│
@@ -20,8 +20,8 @@
  · agent-rename · 1     ▕││-5.││ │                                                         │      ▕│
    new-a                ▕││ash││ │ 2 second · w1:p5 · old-e → new-e · Canceled before      │      ▕│
  · agent-rename · 1     ▕││bas││ │ this pane.                                              │      ▕│
-   codex                ▕││-5.││ │ 7 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
- · agent-rename · 1     ▕││$  ││ │ Canceled. 1 synced, 2 skipped, 6 not attempted          │ · f2 ▕│
+   new-x2               ▕││-5.││ │ 7 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
+ · agent-rename · 1     ▕││$  ││ │ Canceled. 2 synced, 2 skipped, 5 not attempted          │ · f2 ▕│
    codex                ▕││   ││ │                       [ Close ]                         │      ▕│
  · agent-rename · 1     ▕││   ││ │ ↑↓ PgUp/PgDn scroll · Enter/Esc: close                  │      ▕│
    codex                ▕││   ││ └─────────────────────────────────────────────────────────┘      ▕│

@@ -254,7 +254,7 @@ Keep the current installation working until the new version passes all gates. De
 | P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S29 (keyboard and mouse Yes/No, Yes regression S11-S17). |
 | P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T04 captures. |
 | P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L08. |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 51 pass, 2 skip (H01, S07: no toast observable), 0 fail, unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 53 pass, 0 skip, 0 fail, 0 error (H01/S07/S28/S29 verified through the sandbox CLI shim), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 

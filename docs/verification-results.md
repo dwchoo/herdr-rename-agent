@@ -25,7 +25,7 @@ Recorded 2026-10-11, Asia/Seoul:
 464 passed
 
 .venv/bin/python tools/verify_sandbox.py --run --suite next
-51 pass, 0 fail, 0 error, 2 skip (53 scenarios); exit code 0
+53 pass, 0 fail, 0 error, 0 skip (53 scenarios); exit code 0
 ```
 
 Raw data: [actual-results.json](sandbox-next/actual-results.json), [run.json](sandbox-next/run.json), [isolation.json](sandbox-next/isolation.json), captures in [sandbox-next/captures/](sandbox-next/captures/) (TXT, key states also PNG). The R1 investigation that fixed the target behavior is in [r1-source-findings](r1-source-findings.md) and [r1-live-findings](r1-live-findings.md) (`tools/probe_r1.py --run`).
@@ -36,15 +36,20 @@ The unit suite covers the editor port, theme resolution, workspace planner and e
 
 | Series | Count | Result | What it covers |
 | --- | --- | --- | --- |
-| S (sync) | 27 | 26 pass, 1 skip (S07) | S01-S06: scope across tabs with another workspace unchanged, mixed rows, unnamed agent, duplicate labels, name held in another workspace, conflict-only information popup. S07: no eligible rows, no popup, no writes. S10-S22: default No, Tab/Left/Right/Y/N/Esc/Ctrl+C, mouse Yes/No, repeated Enter/Y and double click, completion table with Close, focus change, 60 x 16 client. S23-S25: 80-column layout, 50-column resize message, resize while open. S26-S27: stale previews (changed label, closed pane, renamed agent, cleared label). S28-S29: Stop during a batch and Stop latched with Yes. |
+| S (sync) | 27 | 27 pass | S01-S06: scope across tabs with another workspace unchanged, mixed rows, unnamed agent, duplicate labels, name held in another workspace, conflict-only information popup. S07: no eligible rows, no popup, no writes. S10-S22: default No, Tab/Left/Right/Y/N/Esc/Ctrl+C, mouse Yes/No, repeated Enter/Y and double click, completion table with Close, focus change, 60 x 16 client. S23-S25: 80-column layout, 50-column resize message, resize while open. S26-S27: stale previews (changed label, closed pane, renamed agent, cleared label). S28-S29: Stop during a batch and Stop latched with Yes, made deterministic with the CLI shim's rename delay (see below). |
 | R (rename) | 13 | 13 pass | Save, trim, Ctrl+C clear-only, empty save runs `--clear`, Esc, mouse save/clear/cancel, click elsewhere cancels, invalid paste, name held by another agent, 40 x 10 terminal, resize while open. |
 | T (theme) | 4 | 4 pass | T01-T02: default and Dracula captures with palette-color checks. T03-T04: side-by-side parity of Herdr's native `rename pane` overlay and the plugin rename popup (default and Dracula, 100 x 32); see the next section. |
 | L (lifecycle) | 8 | 8 pass | Dry-run, fresh install with legacy migration, shortcuts open the new dialogs, repeated install, rollback cycle with `v0.1.0` (new, v0.1.0, new), later user edits survive uninstall, repeated uninstall, retained recovery record. |
-| H (harness) | 1 | 1 skip (H01) | Self-test that a notification toast is observable. |
+| H (harness) | 1 | 1 pass | Self-test of the test-only CLI shim (logging, transparency, rename-only delay). |
 
-Skips, with reasons from the run:
+Skips: none. Four scenarios rely on the test-only CLI shim (`tools/herdr_shim.py`, sandbox only; mechanism in [verification.md](verification.md#next-suite-current-revision-plan-section-10-scenarios)):
 
-- **H01** and **S07**: Herdr 0.9.3's headless client draws no notification toast, so the notification wording ("All agent names already match their pane names.") cannot be asserted. S07 verifies only that no popup opens and nothing is written.
+- **H01**: the shim self-check. The plugin's popup open produces logged CLI calls, the shim output equals the real binary's, and the 400 ms delay applies only to `agent rename`.
+- **S07**: Herdr 0.9.3's headless client draws no toast, so the notification is checked in the shim log: exactly one `notification show` with "All agent names already match their pane names.", no `plugin pane open`, no `agent rename`, and no observable write.
+- **S28**: with a 400 ms rename delay on a 7-row batch, Ctrl+C is sent once the second `agent rename` is logged; the log shows exactly two renames (none after Stop), two names synced, five rows "not attempted", summary shows "Canceled".
+- **S29**: Ctrl+C written together with Yes; zero `agent rename` calls in the log, all seven rows "not attempted".
+
+Repeated isolated runs after the change (`--only S28` / `--only S29`, scratch `--output`): S28 5/5 pass, S29 5/5 pass. The earlier S29 intermittent failure and S28's delay search no longer exist.
 
 ## Native / plugin parity (T03, T04)
 
@@ -69,9 +74,8 @@ Remaining differences, not hidden by the checks:
 ## Limitations and unverified items
 
 - **Strict identity criterion: unmet.** Herdr's `agent.rename` has no expected-identity or version precondition, so a race between the final read and each write remains, repeated per row in a batch. Revalidation is not a compare-and-set. See [compatibility](compatibility.md#identity-coverage).
-- Notification delivery and wording are unobserved (H01/S07 skips).
-- The in-progress screen of a running batch was not captured. S28/S29 verify Stop through outcomes (later rows not attempted, in-flight row reconciled); S28 tries several Stop delays to land inside the batch and would skip if none did (it passed).
-- S29 is timing-sensitive: in one earlier full run and one of three isolated reruns it failed (one row applied although Ctrl+C was written together with Yes) and passed in the others, including the final recorded run. The recorded results are that final full run; the intermittent failure is unresolved.
+- Notification delivery to the screen is unobserved (the headless client draws no toast); the notification text is verified only as the argument of the plugin's `notification show` call in the shim log (S07).
+- The in-progress screen of a running batch was not captured. S28/S29 verify Stop through outcomes and the shim call log (later rows not attempted, in-flight row finished, no rename call after Stop).
 - Repeated-batch checks compare agent `revision` deltas rather than counting API writes (counted precisely only in unit tests).
 - Mouse works only where Herdr forwards it to the popup (when the popup enables mouse reporting). Only left press and wheel were exercised; right/middle/drag/motion and border clicks were not.
 - Herdr closes a popup when the workspace focus changes; S21 is written to skip in that case (it passed, so the popup survived).

@@ -18,6 +18,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import time
 
 from verify_herdr import Verification
@@ -83,6 +84,52 @@ class Lab(Verification):
         self.captured: list[str] = []
         self.png_keep: set[str] = set()
         self.raw = b""
+        # Test-only CLI shim, installed inside this disposable session. Herdr overwrites HERDR_BIN_PATH for plugin
+        # processes with its own executable, so a sitecustomize.py on PYTHONPATH (server environment only) points the
+        # plugin's Python processes at the shim before the plugin code runs. See tools/herdr_shim.py.
+        self.shim_dir = self.base / "shim"
+        self.shim_dir.mkdir()
+        self.shim_exe = self.shim_dir / "herdr"
+        shim_py = Path(__file__).resolve().with_name("herdr_shim.py")
+        self.shim_exe.write_text(f'#!/bin/sh\nexec "{sys.executable}" -S "{shim_py}" "$@"\n')
+        self.shim_exe.chmod(0o700)
+        (self.shim_dir / "site").mkdir()
+        (self.shim_dir / "site/sitecustomize.py").write_text(
+            "import os\nif os.environ.get('HERDR_SHIM_EXE'):\n    os.environ['HERDR_BIN_PATH'] = os.environ['HERDR_SHIM_EXE']\n")
+        self.shim_log = self.shim_dir / "calls.jsonl"
+        self.shim_delay_file = self.shim_dir / "rename-delay-ms"
+
+    def launch(self):
+        """Start the client/server with the shim as the plugin's Herdr binary (harness calls keep using the real one)."""
+        plain = self.env
+        self.env = dict(plain, HERDR_SHIM_EXE=str(self.shim_exe), HERDR_SHIM_DIR=str(self.shim_dir),
+                        HERDR_SHIM_REAL=self.binary, PYTHONPATH=str(self.shim_dir / "site"))
+        try:
+            super().launch()
+        finally:
+            self.env = plain
+
+    # ---- shim ----------------------------------------------------------------
+    def set_rename_delay(self, ms):
+        if ms:
+            self.shim_delay_file.write_text(str(int(ms)))
+        else:
+            self.shim_delay_file.unlink(missing_ok=True)
+
+    def shim_calls(self, since=0, phase="start"):
+        """Shim log records (dicts with ``argv``) from index ``since``; one per invocation for phase 'start'."""
+        try:
+            lines = self.shim_log.read_text().splitlines()
+        except OSError:
+            return []
+        records = [json.loads(line) for line in lines if line.strip()]
+        return [r for r in records[since:] if phase is None or r["phase"] == phase]
+
+    def shim_mark(self):
+        try:
+            return len(self.shim_log.read_text().splitlines())
+        except OSError:
+            return 0
 
     def pump(self, duration=.3):
         """Like Verification.pump, but also keeps the raw client byte stream (for OSC notifications)."""
@@ -205,6 +252,7 @@ class Lab(Verification):
     def reset(self, spec=None, size=(100, 32)):
         """Return the session to a known state: no popup, client size, focus on a, labels/names from spec."""
         self.close_popups()
+        self.set_rename_delay(0)
         if tuple(self.client_size) != tuple(size):
             self.resize(*size)
             self.client_size = tuple(size)

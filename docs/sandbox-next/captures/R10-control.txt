@@ -16,7 +16,7 @@
  new                 menu││  GPT-6│                                                       │l and  ▕│
 ─────────────────────────│└───────│ bad�name                                              │       ▕│
  agents           grouped│┌───────│           ↵ save    ^c clear    esc cancel            │ges and▕│
-                         ││bash-5.│characters: a lowercase letter first, then lowercase l │       ▕│
+                         ││bash-5.│ characters: a lowercase letter first, then lowercase  │       ▕│
  · agent-rename · 1      ││       └───────────────────────────────────────────────────────┘       ▕│
    old-a                 ││                                   ││                                  ▕│
  · agent-rename · 1      ││                                   ││› Ask Codex to do anything        ▕│

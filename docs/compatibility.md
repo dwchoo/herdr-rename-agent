@@ -85,4 +85,4 @@ Theme: Herdr's `auto_switch = true` depends on the host terminal appearance, whi
 
 Closing the last pane in a popup's original tab can make Herdr close the popup itself. The plugin cannot retain an error dialog after its host terminal is removed. The isolated test observed this host closure without renaming another agent. Herdr also closes a popup when the workspace focus changes.
 
-The headless test client draws no notification toast, so notification delivery and wording are unverified. The implementation sends the notification through `notification show`; Herdr may rate-limit or suppress it.
+The headless test client draws no notification toast, so notification delivery is unverified; the wording is checked only as the `notification show` argument in the sandbox shim log. The implementation sends the notification through `notification show`; Herdr may rate-limit or suppress it.
