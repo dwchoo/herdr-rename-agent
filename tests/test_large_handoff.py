@@ -152,7 +152,8 @@ def test_decode_rejects_unsafe_or_invalid_file_without_consuming_it(state_env, t
         path.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(HerdrError, match="original pane"):
         decode_handoff({**state_env, HANDOFF_KEY: encoded})
-    assert os.path.lexists(path)
+    # Our own regular file is always consumed; foreign object types are left alone.
+    assert os.path.lexists(path) == (kind in {"symlink", "directory", "fifo"})
 
 
 def test_decode_rejects_file_owned_by_a_different_uid(state_env, monkeypatch):
@@ -230,6 +231,7 @@ def test_decode_rejects_oversized_inline_payload_instead_of_accepting_unbounded_
 # --- workspace plans --------------------------------------------------------
 
 from sync_support import prepared, world  # noqa: E402
+from herdr_agent_rename.sync import plan_from_dict, plan_to_dict  # noqa: E402
 from herdr_agent_rename.context import decode_sync_handoff  # noqa: E402
 
 
@@ -283,10 +285,24 @@ def test_plan_with_mismatched_snapshot_or_workspace_is_rejected(state_env):
         decode_sync_handoff({HANDOFF_KEY: json.dumps(raw)})
 
 
-def test_plan_file_with_unsafe_mode_is_rejected_and_kept(state_env):
+def test_plan_file_with_unsafe_mode_is_rejected_and_consumed(state_env):
     encoded = encode_handoff(Invocation("", "w1"), None, "", state_env, big_plan(60, 20_000))
     path = file_path(encoded)
     path.chmod(0o644)
     with pytest.raises(HerdrError):
         decode_sync_handoff({**state_env, HANDOFF_KEY: encoded})
-    assert path.exists()
+    assert not path.exists()
+
+
+def test_file_bound_is_sane_and_oversized_plan_is_reported_clearly(state_env):
+    assert context.MAX_FILE_BYTES == 4 * 1024 * 1024
+    with pytest.raises(HerdrError, match="too large"):
+        encode_handoff(Invocation("", "w1"), None, "", state_env, big_plan(200, 40_000))
+    assert not list(Path(state_env["HERDR_PLUGIN_STATE_DIR"]).iterdir())
+
+
+def test_eligible_plan_row_with_invalid_label_is_rejected(state_env):
+    raw = plan_to_dict(big_plan(2, 10))
+    raw["rows"][0]["label"] = "--clear"
+    with pytest.raises(ValueError):
+        plan_from_dict(raw)

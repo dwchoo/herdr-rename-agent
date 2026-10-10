@@ -18,7 +18,7 @@ _PANE_ID = re.compile(r"w[0-9a-zA-Z_-]+:p[0-9a-zA-Z_-]+", re.ASCII)
 MAX_INLINE_BYTES = 48 * 1024
 # Sized for a multi-pane workspace plan: each eligible pane carries its own
 # observations (including foreground process argv), so allow 4x the former bound.
-MAX_FILE_BYTES = 64 * 1024 * 1024
+MAX_FILE_BYTES = 4 * 1024 * 1024
 _STATE_FILE = re.compile(r"agent-rename-handoff-[0-9a-f]{32}\.json", re.ASCII)
 _STATE_UNAVAILABLE = "Could not open the dialog: Herdr plugin state is unavailable."
 _STATE_FAILED = "Could not prepare the dialog's original target details. Try again."
@@ -207,10 +207,6 @@ def encode_handoff(invocation: Invocation, snapshot: Snapshot | None, error: str
     return _store_handoff(text, env)
 
 
-def _decode_payload(raw: object) -> tuple[Invocation, Snapshot | None, str, dict[str, str]]:
-    return _decode_full(raw)[:4]
-
-
 def _decode_full(raw: object) -> tuple[Invocation, Snapshot | None, str, dict[str, str], SyncPlan | None]:
     if not isinstance(raw, dict) or type(raw.get("version")) is not int or raw["version"] != 1 or "state_file" in raw:
         raise ValueError("Invalid handoff")
@@ -247,13 +243,17 @@ def _lenient_invocation(raw: object) -> Invocation:
 
 
 def _consume_file(raw: object, env: Mapping[str, str]) -> tuple[Invocation, Snapshot | None, str, dict[str, str], SyncPlan | None]:
+    """Read the private file once; unlink it on every path that opened our own file."""
     directory, name = _file_pointer(raw, env)
     directory_fd = _open_directory(directory)
+    identity: tuple[int, int] | None = None
     try:
         file_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
                           dir_fd=directory_fd)
         with os.fdopen(file_fd, "rb") as handle:
             before = os.fstat(handle.fileno())
+            if stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid():
+                identity = (before.st_dev, before.st_ino)
             if not _private_file(before) or before.st_size > MAX_FILE_BYTES:
                 raise ValueError("Invalid private handoff file")
             data = handle.read(MAX_FILE_BYTES + 1)
@@ -267,9 +267,15 @@ def _consume_file(raw: object, env: Mapping[str, str]) -> tuple[Invocation, Snap
             current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
             if (current.st_dev, current.st_ino) != (before.st_dev, before.st_ino) or not _private_file(current):
                 raise ValueError("Replaced handoff file")
-            os.unlink(name, dir_fd=directory_fd)
             return result
     finally:
+        try:
+            if identity is not None:
+                current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                if (current.st_dev, current.st_ino) == identity:
+                    os.unlink(name, dir_fd=directory_fd)
+        except OSError:
+            pass
         os.close(directory_fd)
 
 

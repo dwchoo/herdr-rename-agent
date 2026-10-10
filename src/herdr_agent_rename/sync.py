@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Mapping, Sequence
 
+from .client import TRANSPORT
 from .models import HerdrError, Invocation, Snapshot
 from .targets import check_target
 from .validation import sanitize_message, validate_name
@@ -77,7 +78,10 @@ def check_sync_agent_name(initial: Snapshot, current: Snapshot) -> None:
 
 NO_NAME = "This pane has no name."
 NO_AGENT = "No running agent was found in this pane."
-STOP_CODES = frozenset({"connection", "unsupported", "method_not_found", "unknown_method"})
+# Server-wide failures: abort the preview (a per-pane "unsupported" is not one).
+SERVER_CODES = frozenset({"connection", "method_not_found", "unknown_method"})
+# During application a capability failure also stops the queue.
+STOP_CODES = SERVER_CODES | {"unsupported"}
 # Definite "the world changed since the preview" signals: skip, do not fail.
 _CHANGED_CODES = frozenset({
     "target_changed", "target_moved", "source_changed", "name_changed",
@@ -193,10 +197,10 @@ def build_plan(
         agent = records[0] if len(records) == 1 else None
         name = _text(agent.get("name")) or None if agent else None
         status, detail = RowStatus.ELIGIBLE, ""
-        if len(records) > 1 or (agent and agent.get("terminal_id") != pane["terminal_id"]):
-            status, detail = RowStatus.LOOKUP_FAILED, "The agent record does not match this pane."
-        elif label is None:
+        if label is None:
             status, detail = RowStatus.NO_PANE_NAME, NO_NAME
+        elif len(records) > 1 or (agent and agent.get("terminal_id") != pane["terminal_id"]):
+            status, detail = RowStatus.LOOKUP_FAILED, "The agent record does not match this pane."
         elif not agent or not _text(agent.get("agent")):
             status, detail = RowStatus.NO_AGENT, NO_AGENT
         elif validate_name(label) is not None:
@@ -246,6 +250,13 @@ def _observation_problem(snapshot: Snapshot, label: str, name: str | None) -> st
     return ""
 
 
+def _lookup_detail(error: HerdrError) -> str:
+    """English per-pane reason; an unusual record never aborts the whole preview."""
+    if error.code == "unsupported":
+        return "This pane's details could not be read in a supported form."
+    return sanitize_message(error) or "The agent could not be inspected."
+
+
 def collect_plan(client: Any, workspace_id: str) -> SyncPlan:
     """Freeze one workspace through the public list APIs (blocking)."""
     panes = client.pane_list(workspace_id)
@@ -256,7 +267,7 @@ def collect_plan(client: Any, workspace_id: str) -> SyncPlan:
         tabs = client.tab_list(workspace_id)
         label = client.workspace_label(workspace_id)
     except HerdrError as error:
-        if error.code in STOP_CODES - {"unsupported"}:
+        if error.code in SERVER_CODES:
             raise
     first = build_plan(workspace_id, panes, agents, tabs, None, label)
     observations: dict[str, Snapshot | HerdrError] = {}
@@ -264,9 +275,9 @@ def collect_plan(client: Any, workspace_id: str) -> SyncPlan:
         try:
             observations[row.pane_id] = client.get_snapshot(Invocation(row.pane_id, row.workspace_id, row.tab_id))
         except HerdrError as error:
-            if error.code in STOP_CODES:
+            if error.code in SERVER_CODES:
                 raise
-            observations[row.pane_id] = error
+            observations[row.pane_id] = HerdrError(_lookup_detail(error), code=error.code)
     return build_plan(workspace_id, panes, agents, tabs, observations, label)
 
 
@@ -347,6 +358,8 @@ def apply_row(client: Any, plan: SyncPlan, row: SyncRow) -> tuple[RowResult, boo
         check_target(initial, current, invocation)
         check_sync_source(initial, current)
         check_sync_agent_name(initial, current)
+        if validate_name(label) is not None:
+            return _skip(row, "The pane name is not a valid agent name.")
         write_started = True
         client.rename(row.pane_id, label)
         write_returned = True
@@ -356,10 +369,11 @@ def apply_row(client: Any, plan: SyncPlan, row: SyncRow) -> tuple[RowResult, boo
         if write_started and (write_returned or error.uncertain):
             if error.uncertain and not write_returned:
                 try:
-                    return _verify(client, row, initial, invocation, label, "Confirmed after an unclear response."), stop
-                except HerdrError:
-                    pass
-            return RowResult(row, RowOutcome.UNCERTAIN, _uncertain_text(error)), stop
+                    return _verify(client, row, initial, invocation, label, "Confirmed after an unclear response."), False
+                except HerdrError as again:
+                    stop = stop or again.code in STOP_CODES
+            # An unconfirmed write over a broken transport must stop the queue.
+            return RowResult(row, RowOutcome.UNCERTAIN, _uncertain_text(error)), stop or error.code == TRANSPORT
         if error.code in _CHANGED_CODES:
             return _skip(row, sanitize_message(error))
         return RowResult(row, RowOutcome.FAILED, sanitize_message(error)), stop
@@ -502,11 +516,14 @@ def plan_from_dict(raw: object) -> SyncPlan:
             raise ValueError("Invalid plan row")
         if item["workspace_id"] != raw["workspace_id"] or not isinstance(item.get("detail", ""), str):
             raise ValueError("Invalid plan row")
-        rows.append(SyncRow(
+        row = SyncRow(
             *(item[k] for k in _ROW_STRINGS), optional(item.get("agent_name"), str), optional(item.get("label"), str),
             RowStatus(item["status"]), item.get("detail", ""), optional(item.get("tab_label"), str),
             optional(item.get("tab_number"), int),
-        ))
+        )
+        if row.status is RowStatus.ELIGIBLE and validate_name(row.label) is not None:
+            raise ValueError("Invalid label in an eligible row")
+        rows.append(row)
     if not isinstance(raw.get("rows"), list) or len({r.pane_id for r in rows}) != len(rows):
         raise ValueError("Invalid plan rows")
     snapshots = {}

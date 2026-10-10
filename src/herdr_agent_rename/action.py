@@ -37,7 +37,14 @@ def launch_sync(env: dict[str, str]) -> None:
     if plan.mode == "noop":
         client.notify(ALL_MATCH)
         return
-    handoff = encode_handoff(invocation, None, "", env, plan)
+    try:
+        handoff = encode_handoff(invocation, None, "", env, plan)
+    except HerdrError as exc:
+        try:
+            client.notify(sanitize(str(exc)))
+        except HerdrError:
+            pass
+        raise
     try:
         client.open_popup(invocation, "sync", handoff)
     except BaseException:
@@ -114,7 +121,7 @@ async def dialog(mode: str, env: dict[str, str]) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Rename the current Herdr agent or confirm copying its pane name.")
+    parser = argparse.ArgumentParser(description="Rename the current Herdr agent, or copy explicit pane names to agent names across the current workspace after confirmation.")
     parser.add_argument("action", choices=("open", "sync", "dialog-open", "dialog-sync"))
     args = parser.parse_args()
     try:

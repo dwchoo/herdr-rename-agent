@@ -89,14 +89,6 @@ class TextEditor:
         self.cursor = 0
         self.replace_on_type = False
 
-    def trim_and_accept(self) -> None:
-        """Strip surrounding whitespace, keeping the cursor on the same text."""
-        leading = len(self.text) - len(self.text.lstrip())
-        self.text = self.text.strip()
-        self.cursor = min(max(self.cursor - leading, 0), len(self.text))
-        self.replace_on_type = False
-        self._repair_cursor()
-
     def _repair_cursor(self) -> None:
         """Snap forward to a grapheme boundary after an edit joined clusters."""
         index = 0

@@ -17,6 +17,8 @@ Everything is rendered from local state; painting never touches the API.
 
 from __future__ import annotations
 
+import sys
+import traceback
 from typing import Any
 
 from prompt_toolkit.application import Application
@@ -31,7 +33,7 @@ from prompt_toolkit.output import ColorDepth, Output
 from prompt_toolkit.styles import Style
 from prompt_toolkit.utils import get_cwidth
 
-from ..sync import RowOutcome, RowResult, RowStatus, SyncProgress, SyncRow, SyncRunner
+from ..sync import RowOutcome, RowResult, RowStatus, SyncProgress, SyncReport, SyncRow, SyncRunner
 from ..theme import Theme, load_theme
 from .common import MIN_WIDTH, bounded_text, display_text, pad_cells, resize_text, wrap_cells
 
@@ -172,6 +174,7 @@ class SyncDialog:
         self._finished = False
         self._cancel_pending = False
         self.report = None
+        self.crash: Exception | None = None
         self._body = 1
         self._table: tuple[int, int] = (0, 0)  # first table row, row count
         self._button_row = 0
@@ -287,6 +290,9 @@ class SyncDialog:
             return "hint", f"Syncing {min(self.done_count + 1, len(self.rows))} of {len(self.rows)}…"
         if phase == "done":
             report = self.report
+            if self.crash is not None:
+                return "error", ("An unexpected error stopped the sync; the remaining panes were not attempted. "
+                                 + (report.summary() if report else ""))
             text = report.summary() if report else ""
             if report and report.canceled:
                 text = "Canceled. " + text
@@ -448,7 +454,7 @@ class SyncDialog:
     def _page(self) -> int:
         return max(1, self._table[1] - 1)
 
-    def _select(self, reverse: bool = False) -> None:
+    def _select(self) -> None:
         if self.phase == "confirm" and self.has_room:
             self.selected = "yes" if self.selected == "no" else "no"
             self.app.invalidate()
@@ -504,8 +510,19 @@ class SyncDialog:
             self.report = await self.runner.run(self._progress)
             self.report = self.report or self.runner.report
         except Exception as exc:
+            # Never exit with a traceback: show what was done and close cleanly.
+            self.crash = exc
+            self.runner.state = "done"
+            outcomes = []
+            for row in self.rows:
+                result = self.results.get(row.pane_id) or RowResult(
+                    row, RowOutcome.NOT_ATTEMPTED, "Stopped by an unexpected error.")
+                self.results[row.pane_id] = result
+                outcomes.append(result)
+            self.report = SyncReport(tuple(outcomes), False, "An unexpected error occurred.")
             self._finished = True
-            self.app.exit(exception=exc)
+            self.current = None
+            self.app.invalidate()
             return
         self._finished = True
         self.current = None
@@ -605,4 +622,7 @@ class SyncDialog:
 
     async def run_async(self) -> bool:
         """Restore terminal modes on all exits, including unexpected failures."""
-        return bool(await self.app.run_async(set_exception_handler=False))
+        result = bool(await self.app.run_async(set_exception_handler=False))
+        if self.crash is not None:
+            traceback.print_exception(self.crash, file=sys.stderr)
+        return result

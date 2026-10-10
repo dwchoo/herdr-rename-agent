@@ -17,8 +17,8 @@ command = ["bin/agent-rename", "open"]
 
 [[actions]]
 id = "sync"
-title = "Set agent name from pane name"
-description = "Copy the current pane name to the agent after Yes/No confirmation."
+title = "Set agent names from pane names"
+description = "Copy explicit pane names to agent names across the current workspace after confirmation."
 contexts = ["pane"]
 command = ["bin/agent-rename", "sync"]
 

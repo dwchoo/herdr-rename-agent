@@ -1,11 +1,13 @@
 """Workspace sync dialog: real VT100 key and mouse streams, layout and cleanup."""
 
 import asyncio
+import contextlib
+import io
 import threading
 
 from dialog_case import DialogCase
 from herdr_agent_rename.models import HerdrError
-from herdr_agent_rename.sync import SyncRunner, build_plan
+from herdr_agent_rename.sync import RowOutcome, SyncRunner, build_plan
 from herdr_agent_rename.theme import PALETTES, theme_from_config
 from herdr_agent_rename.ui import SyncDialog, run_sync_dialog
 from herdr_agent_rename.ui.sync import column_widths, fit
@@ -455,10 +457,32 @@ class LayoutTests(SyncCase):
                 self.assertTrue(await asyncio.wait_for(task, 2))
             else:
                 self.pipe.send_text("y")
-                with self.assertRaisesRegex(RuntimeError, "unexpected failure"):
-                    await asyncio.wait_for(task, 2)
+                await eventually(lambda: runner.state == "done")
+                await asyncio.sleep(0.05)
+                self.pipe.send_text("\r")
+                self.assertFalse(await asyncio.wait_for(task, 2))
             for event in ("mouse-on", "mouse-off", "screen-on", "screen-off", "cursor-on", "paste-off"):
                 self.assertIn(event, output.events)
+
+    async def test_unexpected_runner_error_shows_done_state_and_logs_after_exit(self):
+        class Exploding(CountingRunner):
+            async def run(self, progress=None):
+                raise RuntimeError("unexpected failure")
+
+        runner, fake = make_runner(cls=Exploding)
+        dialog, task, output = await self.start_term(runner)
+        self.pipe.send_text("y")
+        await self.wait_phase(dialog, "done")
+        screen = await self.frame(dialog, output)
+        text = "\n".join(screen.display)
+        self.assertIn("unexpected error", text)
+        self.assertIn("Close", text)
+        self.assertEqual({r.outcome for r in dialog.report.results} - {RowOutcome.MATCHING, RowOutcome.SKIPPED}, {RowOutcome.NOT_ATTEMPTED})
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.pipe.send_text("\r")
+            self.assertFalse(await asyncio.wait_for(task, 2))
+        self.assertIn("unexpected failure", stderr.getvalue())
 
     async def test_run_sync_dialog_entry_point(self):
         task = asyncio.create_task(run_sync_dialog(make_runner()[0]))

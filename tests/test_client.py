@@ -29,7 +29,7 @@ def install_run(monkeypatch, values):
 
 def test_rename_literal_argv_connection_timeout_and_no_terminal_input(monkeypatch):
     calls = install_run(monkeypatch, [(0, response(), "")])
-    candidate = "x;$(touch /tmp/never-execute)`id`"
+    candidate = "x-flag_1"
     client = HerdrClient({"HERDR_BIN_PATH": "/trusted/herdr", "HERDR_SOCKET_PATH": "/tmp/isolated.sock"}, timeout=0.5)
     client.rename("w1:p1", candidate)
     argv, kwargs = calls[0]
@@ -234,3 +234,75 @@ def test_list_and_clear_capabilities_are_required(monkeypatch, mutate):
     install_run(monkeypatch, [(0, "herdr 0.9.3\n", ""), (0, json.dumps(schema), "")])
     with pytest.raises(HerdrError, match="not supported"):
         HerdrClient({"HERDR_BIN_PATH": "/herdr"}).verify_support()
+
+
+def test_rename_rejects_names_that_could_be_cli_flags_before_any_request(monkeypatch):
+    calls = install_run(monkeypatch, [])
+    for bad in ("--clear", "-x", "x;$(id)", "", "Name"):
+        with pytest.raises(HerdrError) as failure:
+            HerdrClient({"HERDR_BIN_PATH": "/herdr"}).rename("w1:p1", bad)
+        assert not failure.value.uncertain
+    assert calls == []
+
+
+@pytest.mark.parametrize("result", [subprocess.TimeoutExpired("herdr", 5), OSError("gone"), (1, "", "disconnected")])
+def test_transport_failure_of_a_write_has_a_distinct_code(monkeypatch, result):
+    install_run(monkeypatch, [result])
+    with pytest.raises(HerdrError) as failure:
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).rename("w1:p1", "name")
+    assert failure.value.uncertain and failure.value.code == "transport"
+
+
+def _supported(monkeypatch, version, schema):
+    install_run(monkeypatch, [(0, version, ""), (0, json.dumps(schema), "")])
+    HerdrClient({"HERDR_BIN_PATH": "/herdr"}).verify_support()
+
+
+def _schema():
+    return json.loads((Path(__file__).parent / "fixtures/schema-0.9.3.json").read_text())
+
+
+@pytest.mark.parametrize("version", ["herdr 0.9.4 (abc123)\n", "herdr 0.10.0-rc.1+build.5 (deadbeef 2026-01-01)\n", "herdr 1.2.3\n"])
+def test_newer_version_strings_with_build_info_are_accepted(monkeypatch, version):
+    _supported(monkeypatch, version, _schema())
+
+
+@pytest.mark.parametrize("version", ["herdr 0.9.2 (abc)\n", "herdr 0.9\n", "other 0.9.3\n"])
+def test_old_or_odd_version_strings_are_rejected(monkeypatch, version):
+    install_run(monkeypatch, [(0, version, "")])
+    with pytest.raises(HerdrError, match="not supported"):
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).verify_support()
+
+
+def test_schema_shape_changes_are_tolerated(monkeypatch):
+    schema = _schema()
+    request = schema["schemas"]["request"]
+    defs = request["$defs"]
+    # oneOf -> anyOf for the methods, const -> single-value enum.
+    request["anyOf"] = [{"properties": {"method": {"enum": [m["properties"]["method"]["const"]]}}} for m in request.pop("oneOf")]
+    # Placement enum split into a oneOf of consts; nullable name via anyOf; extra type list.
+    defs["PluginPanePlacement"] = {"oneOf": [{"const": v} for v in ("overlay", "popup", "split")]}
+    defs["AgentRenameParams"]["properties"]["name"] = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+    defs["PaneListParams"]["properties"]["workspace_id"] = {"anyOf": [{"type": ["string"]}, {"type": "null"}]}
+    _supported(monkeypatch, "herdr 0.9.3\n", schema)
+
+
+def test_missing_optional_detail_is_not_unsupported_when_methods_exist(monkeypatch):
+    schema = _schema()
+    for name in ("PluginPanePlacement", "PluginInvocationContext", "PaneListParams", "AgentRenameParams"):
+        del schema["schemas"]["request"]["$defs"][name]
+    _supported(monkeypatch, "herdr 0.9.3\n", schema)
+
+
+def test_unknown_session_kind_elsewhere_does_not_reject_a_list(monkeypatch):
+    other = {**AGENT, "pane_id": "w2:p1", "terminal_id": "t2", "workspace_id": "w2", "tab_id": "w2:t1",
+             "name": "holder", "agent_session": {"agent": "x", "source": "s", "kind": "future-kind", "value": "v"}}
+    body = json.dumps({"id": "t", "result": {"type": "agent_list", "agents": [AGENT, other]}})
+    install_run(monkeypatch, [(0, body, ""), (0, body, "")])
+    client = HerdrClient({"HERDR_BIN_PATH": "/herdr"})
+    assert [a["name"] for a in client.agent_list()] == ["reviewer", "holder"]
+    # ...while a strict observation of that pane stays unsupported.
+    pane = {**other, "agent": "x"}
+    install_run(monkeypatch, [(0, response("pane_info", "pane", pane), "")])
+    with pytest.raises(HerdrError, match="not supported"):
+        client.pane_get("w2:p1")

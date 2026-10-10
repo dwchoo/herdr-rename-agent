@@ -379,3 +379,99 @@ def test_collect_plan_lookup_failure_marks_the_row_and_connection_loss_aborts():
     fake.fail["get_snapshot"] = HerdrError("Could not connect to Herdr.", code="connection")
     with pytest.raises(HerdrError):
         collect_plan(fake, "w1")
+
+
+# --- review regressions ----------------------------------------------------
+
+def test_per_pane_unsupported_becomes_a_lookup_row_and_other_rows_survive():
+    panes, agents = world(("w1:p1", "aa", "x"), ("w1:p2", "bb", "y"))
+    fake = Fake(panes, agents)
+    real = fake.get_snapshot
+
+    def snap(invocation):
+        if invocation.pane_id == "w1:p1":
+            raise HerdrError("This Herdr version is not supported.", code="unsupported")
+        return real(invocation)
+    fake.get_snapshot = snap
+    plan = collect_plan(fake, "w1")
+    assert statuses(plan) == {"w1:p1": RowStatus.LOOKUP_FAILED, "w1:p2": RowStatus.ELIGIBLE}
+    assert "could not be read" in plan.rows[0].detail and plan.mode == "confirm"
+    fake.get_snapshot = lambda invocation: (_ for _ in ()).throw(HerdrError("Gone", code="method_not_found"))
+    with pytest.raises(HerdrError):
+        collect_plan(fake, "w1")
+
+
+def test_target_changed_is_a_row_problem_only():
+    panes, agents = world(("w1:p1", "aa", "x"), ("w1:p2", "bb", "y"))
+    fake = Fake(panes, agents)
+    fake.fail["get_snapshot"] = HerdrError("The target agent has changed.", code="target_changed")
+    plan = collect_plan(fake, "w1")
+    assert statuses(plan) == {"w1:p1": RowStatus.LOOKUP_FAILED, "w1:p2": RowStatus.ELIGIBLE}
+
+
+def test_label_less_pane_is_no_pane_name_even_with_inconsistent_agent_records():
+    panes = [pane("w1:p1"), pane("w1:p2")]
+    wrong = agent("w1:p1", "named")
+    wrong["terminal_id"] = "other"
+    agents = [wrong, agent("w1:p2", "a"), agent("w1:p2", "b")]
+    plan = build_plan("w1", panes, agents)
+    assert set(statuses(plan).values()) == {RowStatus.NO_PANE_NAME} and plan.mode == "noop"
+
+
+def test_transport_failure_of_a_write_stops_the_queue():
+    fake, plan = prepared(("w1:p1", "aa", "x"), ("w1:p2", "bb", "y"), ("w1:p3", "cc", "z"))
+
+    def hook(f, pane_id, name):
+        raise HerdrError(UNCERTAIN, uncertain=True, code="transport")
+    fake.rename_hook = hook
+    _, report = run(fake, plan)
+    assert [r.outcome for r in report.results] == [RowOutcome.UNCERTAIN, RowOutcome.NOT_ATTEMPTED, RowOutcome.NOT_ATTEMPTED]
+    assert fake.writes == [("w1:p1", "aa")] and report.stopped
+
+
+def test_transport_failure_that_reconciles_does_not_stop():
+    fake, plan = prepared(("w1:p1", "aa", "x"), ("w1:p2", "bb", "y"))
+    real = Fake.apply
+
+    def hook(f, pane_id, name):
+        if pane_id == "w1:p1":
+            real(f, pane_id, name)
+            raise HerdrError(UNCERTAIN, uncertain=True, code="transport")
+        return real(f, pane_id, name)
+    fake.rename_hook = hook
+    _, report = run(fake, plan)
+    assert [r.outcome for r in report.results] == [RowOutcome.SYNCED, RowOutcome.SYNCED]
+
+
+def test_definite_rejection_still_continues():
+    fake, plan = prepared(("w1:p1", "aa", "x"), ("w1:p2", "bb", "y"))
+    real = Fake.apply
+
+    def hook(f, pane_id, name):
+        if pane_id == "w1:p1":
+            raise HerdrError("This agent name is already in use.", code="agent_name_taken")
+        return real(f, pane_id, name)
+    fake.rename_hook = hook
+    _, report = run(fake, plan)
+    assert [r.outcome for r in report.results] == [RowOutcome.FAILED, RowOutcome.SYNCED]
+
+
+def test_invalid_label_never_reaches_the_client_write():
+    fake, plan = prepared(("w1:p1", "aa", "x"))
+    from dataclasses import replace
+    bad = replace(plan.rows[0], label="--clear")
+    plan = replace(plan, rows=(bad,))
+    plan.snapshots["w1:p1"].pane["label"] = "--clear"
+    fake.panes[0]["label"] = "--clear"
+    _, report = run(fake, plan)
+    assert report.results[0].outcome is RowOutcome.SKIPPED and fake.writes == []
+
+
+def test_decoding_rejects_eligible_rows_with_invalid_labels():
+    panes, agents = world(("w1:p1", "aa", "x"))
+    plan = build_plan("w1", panes, agents, observations=observed(panes, agents, build_plan("w1", panes, agents)))
+    for label in ("--clear", "Upper", None, ""):
+        raw = plan_to_dict(plan)
+        raw["rows"][0]["label"] = label
+        with pytest.raises(ValueError):
+            plan_from_dict(raw)

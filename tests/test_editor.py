@@ -128,18 +128,6 @@ def test_unicode_graphemes_and_boundary_changing_edits():
     assert editor.text == "é"
 
 
-def test_accepting_trimmed_text_preserves_cursor_and_kill_buffer():
-    editor = TextEditor("  feature/name  ", True)
-    editor.trim_and_accept()
-    assert editor.text == "feature/name"
-    assert not editor.replace_on_type
-    assert editor.cursor == len(editor.text)
-    key(editor, "c-w")
-    editor.trim_and_accept()
-    key(editor, "c-y")
-    assert editor.text == "feature/name"
-
-
 def test_words_distinguish_paths_punctuation_and_whitespace():
     editor = TextEditor("src/foo_bar.rs  é中 👩‍💻")
     for expected in [
@@ -368,30 +356,6 @@ def test_single_control_character_key_is_not_inserted():
     assert editor.text == "a"
     assert editor.handle_key(" ") is True
     assert editor.text == "a "
-
-
-def test_trim_and_accept_cursor_adjustment():
-    editor = TextEditor("  ab  ")
-    editor.cursor = 1
-    editor.trim_and_accept()
-    assert (editor.text, editor.cursor) == ("ab", 0)
-    editor = TextEditor("  ab  ")
-    editor.cursor = 3
-    editor.trim_and_accept()
-    assert (editor.text, editor.cursor) == ("ab", 1)
-    editor = TextEditor("  ab  ")
-    editor.trim_and_accept()
-    assert (editor.text, editor.cursor) == ("ab", 2)
-    editor = TextEditor("   ")
-    editor.trim_and_accept()
-    assert (editor.text, editor.cursor) == ("", 0)
-
-
-def test_trim_and_accept_repairs_cursor_inside_cluster():
-    editor = TextEditor(" ́x")
-    editor.cursor = 2
-    editor.trim_and_accept()
-    assert editor.cursor in boundaries(editor.text)
 
 
 def test_clear_resets_state_but_keeps_kill_buffer():
