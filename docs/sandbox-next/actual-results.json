@@ -1,11 +1,11 @@
 {
   "suite": "next",
-  "date": "2026-10-11T00:12:59.970785+09:00",
+  "date": "2026-10-11T00:37:28.946041+09:00",
   "herdr_version": "0.9.3",
   "terminal": "PTY xterm-256color, truecolor, default 100x32",
   "assertions": "PLAN sections 6, 10 (planned behavior)",
   "counts": {
-    "pass": 49,
+    "pass": 51,
     "fail": 0,
     "error": 0,
     "skip": 2
@@ -148,7 +148,7 @@
       "captures": [
         "S07-after"
       ],
-      "seconds": 14.4
+      "seconds": 14.3
     },
     {
       "id": "S10",
@@ -251,7 +251,7 @@
         "S17-dialog",
         "S17-after"
       ],
-      "seconds": 4.2
+      "seconds": 4.1
     },
     {
       "id": "S18",
@@ -264,7 +264,7 @@
         "S18-dialog",
         "S18-after"
       ],
-      "seconds": 3.1
+      "seconds": 3.0
     },
     {
       "id": "S19",
@@ -281,7 +281,7 @@
         "S19-dialog",
         "S19-after"
       ],
-      "seconds": 11.0
+      "seconds": 11.1
     },
     {
       "id": "S20",
@@ -328,7 +328,7 @@
       "captures": [
         "R01-open"
       ],
-      "seconds": 3.2
+      "seconds": 3.1
     },
     {
       "id": "R02",
@@ -350,7 +350,7 @@
       "captures": [
         "R03-cleared"
       ],
-      "seconds": 2.5
+      "seconds": 2.4
     },
     {
       "id": "R04",
@@ -360,7 +360,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 2.5
+      "seconds": 2.4
     },
     {
       "id": "R05",
@@ -382,7 +382,7 @@
       "captures": [
         "R06-typed"
       ],
-      "seconds": 2.5
+      "seconds": 2.4
     },
     {
       "id": "R07",
@@ -404,7 +404,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 2.3
+      "seconds": 2.4
     },
     {
       "id": "R09",
@@ -441,7 +441,7 @@
       "captures": [
         "R11-duplicate"
       ],
-      "seconds": 3.3
+      "seconds": 3.2
     },
     {
       "id": "R12",
@@ -527,7 +527,7 @@
       "captures": [
         "S28-stop-10ms"
       ],
-      "seconds": 35.2
+      "seconds": 35.6
     },
     {
       "id": "S29",
@@ -539,7 +539,7 @@
       "captures": [
         "S28-stop-0ms"
       ],
-      "seconds": 35.5
+      "seconds": 35.7
     },
     {
       "id": "R13",
@@ -568,6 +568,20 @@
       "seconds": 3.1
     },
     {
+      "id": "T03",
+      "title": "Native pane rename overlay and plugin rename popup match (catppuccin, 100x32)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "native-pane-rename-catppuccin",
+        "plugin-rename-catppuccin",
+        "parity-catppuccin"
+      ],
+      "seconds": 3.1
+    },
+    {
       "id": "L01",
       "title": "Installer dry-run on a fresh sandbox config previews the edit and changes nothing",
       "theme": "lifecycle",
@@ -585,7 +599,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 0.5
+      "seconds": 0.6
     },
     {
       "id": "L03",
@@ -598,7 +612,7 @@
         "L03-rename",
         "L03-sync"
       ],
-      "seconds": 7.0
+      "seconds": 7.2
     },
     {
       "id": "L04",
@@ -620,7 +634,7 @@
       "captures": [
         "L05-legacy-rename"
       ],
-      "seconds": 4.1
+      "seconds": 4.0
     },
     {
       "id": "L06",
@@ -650,7 +664,7 @@
       "result": "pass",
       "details": "",
       "captures": [],
-      "seconds": 0.7
+      "seconds": 0.9
     },
     {
       "id": "T02",
@@ -663,7 +677,21 @@
         "T02-rename",
         "T02-sync"
       ],
-      "seconds": 3.1
+      "seconds": 3.2
+    },
+    {
+      "id": "T04",
+      "title": "Native pane rename overlay and plugin rename popup match (dracula, 100x32)",
+      "theme": "dracula",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "native-pane-rename-dracula",
+        "plugin-rename-dracula",
+        "parity-dracula"
+      ],
+      "seconds": 3.0
     }
   ]
 }

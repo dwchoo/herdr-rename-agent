@@ -1,6 +1,12 @@
 """Rename dialog: the layout and input model of Herdr's pane rename overlay.
 
-Reference: ``src/client/shell/overlays.rs`` (rename overlay) in Herdr v0.9.3.
+Ported from herdrdev/herdr v0.9.3 ``src/client/shell/overlays.rs`` (rename
+overlay renderer and its ``panel``/``row``/``button`` helpers),
+``src/client/shell/overlay_input.rs`` and ``src/client/shell/mouse.rs`` (key
+routing and press-activated mouse behavior), commit
+7b116c05bfda646af39d2524c54e70c751f57ee8, Apache-2.0. See
+THIRD_PARTY_NOTICES.md.
+
 The overlay is drawn inside the plugin popup's content area (54x5 for a popup
 of manifest width 57 and height 7): title on row 0, the input on row 2 and the
 three buttons on row 3, with the exact native labels and offsets.

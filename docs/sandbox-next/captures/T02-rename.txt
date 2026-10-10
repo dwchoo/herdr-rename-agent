@@ -16,7 +16,7 @@
  new                 menu││  GPT-6│                                                       │t Codex │
 ─────────────────────────│└───────│ old-a                                                 │        │
  agents           grouped│┌───────│           ↵ save    ^c clear    esc cancel            │l and   │
-                         ││bash-5.│                                                       │        │
+                         �│bash-5.│                                                       │        │
  · agent-rename · 1      ││       └───────────────────────────────────────────────────────┘ges and │
    old-a                 ││                                   ││  find issues                      │
  · agent-rename · 1      ││                                   ││                                   │

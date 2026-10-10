@@ -34,7 +34,8 @@ TIMEOUTS = {"S28": 300, "S29": 150, "S26": 120}
 LIFECYCLE = "lifecycle"  # pseudo-theme: these scenarios share one fresh, un-installed session and run in order
 # Key UI states that also get a PNG (everything else is TXT only).
 PNG_KEEP = {"T01-rename", "T01-sync", "T02-rename", "T02-sync", "R01-open", "S10-dialog", "S27-running", "S20-after",
-            "S06-dialog", "S22-small", "R12-small", "S23-80cols", "R13-resized", "S25-done", "S28-stop-0ms"}
+            "native-pane-rename-catppuccin", "plugin-rename-catppuccin", "native-pane-rename-dracula",
+            "plugin-rename-dracula", "S06-dialog", "S22-small", "R12-small", "S23-80cols", "R13-resized", "S25-done", "S28-stop-0ms"}
 
 
 def base(**over):
@@ -949,6 +950,97 @@ def t01(lab):
 @scenario("T02", "Dracula theme captures and palette colors", theme="dracula", spec=CHANGE_AB_D)
 def t02(lab):
     theme_checks(lab, "dracula")
+
+
+# ---- native pane rename overlay vs plugin rename popup (same theme, same client size) ---------
+PARITY_LABELS = (" ↵ save ", " ^c clear ", " esc cancel ")
+
+
+def native_box(lab):
+    """Border box (x, y, width, height) of Herdr's own 'rename pane' overlay, or None. Its title is the first content row."""
+    lines = lab.lines()
+    for y, line in enumerate(lines):
+        at = line.find("rename pane")
+        if at < 0 or y == 0:
+            continue
+        top = lines[y - 1]
+        left = max((top.rfind(c, 0, at) for c in "┌╭"), default=-1)
+        rights = [i for i in (top.find(c, at) for c in "┐╮") if i >= 0]
+        if left < 0 or not rights:
+            continue
+        right = min(rights)
+        for by in range(y + 1, len(lines)):
+            if len(lines[by]) > right and lines[by][left] in "└╰" and lines[by][right] in "┘╯":
+                return left, y - 1, right - left + 1, by - y + 2
+    return None
+
+
+class Box:
+    def __init__(self, x, y, width, height):
+        self.x, self.y, self.width, self.height = x, y, width, height
+
+
+def parity_points(lab, x, y, width, height, title_text, fixed_text):
+    """Observable layout/color points of one dialog. (x, y, width, height) is the content area."""
+    lines = lab.lines()
+    rows = lambda text: [i - y for i in range(y, y + height) if text in lines[i][x:x + width]]
+    buttons = {}
+    for label in PARITY_LABELS:
+        at = next(((i, lines[i].find(label, x, x + width)) for i in range(y, y + height) if label in lines[i][x:x + width]), None)
+        ok(at is not None and at[1] >= 0, f"button label {label!r} not found in the dialog\n" + lab.text())
+        buttons[label] = (at[0] - y, at[1] - x)
+    row = {"title": rows(title_text), "input": rows(fixed_text)}
+    ok(row["title"] and row["input"], f"title {title_text!r} or input {fixed_text!r} not found\n" + lab.text())
+    colors = {"panel_bg": lab.popup_background(Box(x - 1, y - 1, width + 2, height + 2))}
+    for name, label in (("save", PARITY_LABELS[0]), ("clear", PARITY_LABELS[1]), ("cancel", PARITY_LABELS[2])):
+        cx, cy = x + buttons[label][1] + 3, y + buttons[label][0]
+        colors[name + "_bg"] = lab.cell_background(cx, cy)
+        colors[name + "_fg"] = lab.screen.buffer[cy][cx].fg
+    return {"title_row": row["title"][0], "input_row": row["input"][0], "button_rows": sorted({v[0] for v in buttons.values()}),
+            "button_cols": {label.strip(): buttons[label][1] for label in PARITY_LABELS}, "colors": colors, "content": [width, height]}
+
+
+def parity_checks(lab, theme):
+    palette = PALETTES[theme]
+    # Native pane rename overlay: Ctrl+B Shift+P (default rename-pane binding) on the focused pane (label new-a).
+    lab.keys("\x02", .15)
+    os.write(lab.fd, b"P")
+    lab.until(lambda: native_box(lab), 5, .05)
+    lab.pump(.4)
+    box = native_box(lab)
+    lab.shot(f"native-pane-rename-{theme}")
+    ok(box, "Herdr's native pane rename overlay did not open (Ctrl+B Shift+P)\n" + lab.text())
+    nx, ny, nw, nh = box
+    native = parity_points(lab, nx + 1, ny + 1, nw - 2, nh - 2, "rename pane", "new-a")
+    lab.keys("\x1b", .6)
+    ok(lab.until(lambda: native_box(lab) is None, 3), "native overlay did not close on Esc")
+    lab.close_popups()
+    frame = open_rename(lab)
+    lab.shot(f"plugin-rename-{theme}")
+    px, py, pw, ph = frame.inner
+    plugin = parity_points(lab, px, py, 54, 5, "rename agent", "old-a")
+    lab.keys("\x1b", .5)
+    detail = {"native": native, "plugin": plugin, "native_box": [nx, ny, nw, nh], "plugin_title": frame.title,
+              "plugin_frame": [frame.x, frame.y, frame.width, frame.height], "client": list(lab.client_size)}
+    (lab.destination / f"parity-{theme}.json").write_text(json.dumps(detail, indent=2) + "\n")
+    lab.captured.append(f"parity-{theme}")
+    ok(native["colors"]["panel_bg"] == palette["panel_bg"] and native["colors"]["save_bg"] == palette["accent"],
+       f"{theme}: native colors {native['colors']} differ from the expected palette")
+    ok(plugin["button_cols"] == native["button_cols"], f"button column offsets differ: native {native['button_cols']} plugin {plugin['button_cols']}")
+    ok(plugin["button_rows"] == native["button_rows"], f"button rows differ: native {native['button_rows']} plugin {plugin['button_rows']}")
+    ok(plugin["title_row"] == native["title_row"] and plugin["input_row"] == native["input_row"],
+       f"title/input rows differ: native {native['title_row']}/{native['input_row']} plugin {plugin['title_row']}/{plugin['input_row']}")
+    ok(plugin["colors"] == native["colors"], f"colors differ: native {native['colors']} plugin {plugin['colors']}")
+
+
+@scenario("T03", "Native pane rename overlay and plugin rename popup match (catppuccin, 100x32)", theme="catppuccin", spec=CHANGE_AB_D)
+def t03(lab):
+    parity_checks(lab, "catppuccin")
+
+
+@scenario("T04", "Native pane rename overlay and plugin rename popup match (dracula, 100x32)", theme="dracula", spec=CHANGE_AB_D)
+def t04(lab):
+    parity_checks(lab, "dracula")
 
 
 # ---- runner ------------------------------------------------------------------------------

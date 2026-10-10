@@ -1,7 +1,9 @@
 """Herdr theme palettes and prompt_toolkit styles for the plugin dialogs.
 
-Palettes are copied from herdrdev/herdr v0.9.3 (``src/app/state.rs``, Apache-2.0);
-see docs/r1-source-findings.md.  Values are prompt_toolkit colors: ``#rrggbb``,
+Ported from herdrdev/herdr v0.9.3 (commit
+7b116c05bfda646af39d2524c54e70c751f57ee8, Apache-2.0): palettes from
+``src/app/state.rs``, theme resolution from ``src/app/mod.rs`` and
+``src/config/theme.rs``. See THIRD_PARTY_NOTICES.md and docs/r1-source-findings.md.  Values are prompt_toolkit colors: ``#rrggbb``,
 an ``ansi*`` name (the ``terminal`` theme), or ``None`` for the terminal default.
 
 Resolution mirrors Herdr (``src/app/mod.rs``) with these documented fallbacks:

@@ -16,7 +16,7 @@
  new                 menu││  GPT-│                                                         │ Codex │
 ─────────────────────────│└──────│                                                         │       │
  agents           grouped│┌──────│                                                         │ and   │
-                         ││bash-5│                                                         │       │
+                         �│bash-5│                                                         │       │
  · agent-rename · 1      ││      │                                                         │es and │
    old-a                 ││      │ 1 · w1:p1 · old-a → new-a                               │       │
  · agent-rename · 1      ││      │                                                         │       │

@@ -12,7 +12,7 @@ Herdr 0.9.3 has no native agent rename overlay. The dialog reproduces its pane r
 | `prefix+shift+a` | `local.agent-rename.open` | Edit, clear or cancel the agent name of the focused pane. |
 | `prefix+shift+s` | `local.agent-rename.sync` | Preview and confirm copying explicit pane names to agent names for all panes in the current workspace, including other tabs. No is selected initially. |
 
-Status: implemented and verified in an isolated sandbox, not yet deployed to a live Herdr environment; see [verification results](docs/verification-results.md) for exactly what passed. The previous single-pane release is tagged `v0.1.0`. The manifest and package version strings still read 0.1.0.
+Status: implemented and verified in an isolated sandbox, not yet deployed to a live Herdr environment; see [verification results](docs/verification-results.md) for exactly what passed. The previous single-pane release is tagged `v0.1.0`. The manifest and package version is 0.2.0.
 
 ## Name rules
 

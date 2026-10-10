@@ -164,7 +164,7 @@ Public plugin boundary differences already observed in 0.9.3, which no runtime l
 - The popup PTY is the outer size minus 3 columns and 2 rows (reserved gutter), so a 57x7 manifest size is needed for the 54x5 content area.
 - Popups center within the pane surface; the native overlay centers within the client surface.
 
-Dimensions were locked from live measurements (57x7 rename popup, `"80%"`/`"70%"` sync popup). Parity acceptance: captures in the same theme and size match in colors, text, and button positions, apart from the listed boundary differences. Checked for the default and Dracula themes by palette-color assertions on the plugin's own captures (T01, T02), against the ported palettes; not by a side-by-side native capture.
+Dimensions were locked from live measurements (57x7 rename popup, `"80%"`/`"70%"` sync popup). Parity acceptance: captures in the same theme and size match in colors, text, and button positions, apart from the listed boundary differences. Checked for the default and Dracula themes by palette-color assertions on the plugin's own captures (T01, T02) and by side-by-side captures of the native `rename pane` overlay and the plugin popup at 100x32 (T03, T04): content size, title/input/button rows, button column offsets, popup background and button colors are equal; border/title, outer size (56x7 vs 57x7) and placement differ as listed above ([results](docs/verification-results.md#native--plugin-parity-t03-t04)).
 
 Terminal cleanup: restore cursor, raw mode, alternate screen, bracketed paste, and mouse modes on success, cancellation, and errors.
 
@@ -250,11 +250,11 @@ Keep the current installation working until the new version passes all gates. De
 
 | Stage | Work | Status and evidence |
 | --- | --- | --- |
-| R1: Investigate | Reproduce the Yes failure; mouse delivery; pane/agent list coverage; name uniqueness; replace-on-type, trimming and buttons; percentage popup sizes. | **Done.** [r1-source-findings](docs/r1-source-findings.md), [r1-live-findings](docs/r1-live-findings.md), `tools/probe_r1.py`, fixtures. The native agent rename overlay does not exist, so the pane rename overlay is the reference, taken from source review. No side-by-side capture against the native overlay was made in this revision. |
+| R1: Investigate | Reproduce the Yes failure; mouse delivery; pane/agent list coverage; name uniqueness; replace-on-type, trimming and buttons; percentage popup sizes. | **Done.** [r1-source-findings](docs/r1-source-findings.md), [r1-live-findings](docs/r1-live-findings.md), `tools/probe_r1.py`, fixtures. The native agent rename overlay does not exist, so the pane rename overlay is the reference, taken from source review. The side-by-side capture was made later (T03, T04). |
 | P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S29 (keyboard and mouse Yes/No, Yes regression S11-S17). |
-| P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T02 captures. |
+| P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T04 captures. |
 | P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L08. |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 49 pass, 2 skip (H01, S07: no toast observable), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 51 pass, 2 skip (H01, S07: no toast observable), 0 fail, unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 
@@ -277,7 +277,7 @@ Testing layers:
 - Python unit/behavior tests (existing suite extended).
 - prompt_toolkit TUI tests through a real PTY (existing approach).
 - Real Herdr PTY E2E in the bubblewrap harness, extended to mouse, `--clear`, and multi-tab sync with another workspace as an unchanged control. Never rename the user's development agent in a test.
-- Side-by-side native/plugin captures in the same theme and size (not performed in this revision; see §9 R1).
+- Side-by-side native/plugin captures in the same theme and size (T03, T04, 100x32, default and Dracula; see [results](docs/verification-results.md)).
 
 Historical 225/42/8 counts are baseline only; current results are recorded separately in [docs/verification-results.md](docs/verification-results.md). Matrix scenarios not observable in Herdr 0.9.3 (notification wording) are listed as skips there.
 

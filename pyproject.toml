@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "herdr-agent-rename"
-version = "0.1.0"
+version = "0.2.0"
 description = "Small one-shot agent rename dialogs for Herdr"
 requires-python = ">=3.11"
 dependencies = ["prompt_toolkit==3.0.52", "wcwidth==0.2.13", "regex==2026.8.31", "tomlkit==0.15.1"]

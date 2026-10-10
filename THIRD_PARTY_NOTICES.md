@@ -26,7 +26,7 @@ Herdr is a binary-only crate, so nothing is imported as a library. The following
 - Themes: when `auto_switch = true`, the dark variant is assumed because a plugin cannot read the host terminal appearance.
 - The workspace sync dialog, planner and executor are original to this project and use only Herdr's public CLI/API.
 
-Source headers: `editor.py` names the upstream file, version and commit; `theme.py` and `ui/rename.py` name the upstream files and version `v0.9.3` (the commit is recorded here and in `docs/r1-source-findings.md`).
+Source headers: `editor.py`, `theme.py` and `ui/rename.py` name the upstream files, version `v0.9.3`, commit and license.
 
 ## Python dependencies
 
