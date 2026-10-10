@@ -1,0 +1,225 @@
+{
+  "herdr_version": "0.9.3",
+  "codex_arguments": [
+    "--no-daemon",
+    "--no-alt-screen",
+    "--sandbox",
+    "read-only"
+  ],
+  "terminal": "PTY xterm-256color, truecolor",
+  "cells": "100x32",
+  "theme": "default catppuccin",
+  "captures": "Reconstructed from actual client VT100 cells; no OS compositor screenshot",
+  "scenarios": [
+    {
+      "scenario": "One-command install migrates legacy popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Repeated install keeps one binding per action and recovery record",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Install/uninstall previews leave config and registration intact",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Manifest link and action discovery",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Missing agent disables Apply",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Dedicated idle Codex agent detected",
+      "result": "Passed",
+      "details": "{\"id\":\"cli:agent:start\",\"result\":{\"agent\":{\"agent\":\"codex\",\"agent_status\":\"unknown\",\"cwd\":\"/workspace/agent-rename\",\"focused\":true,\"foreground_cwd\":\"/workspace/agent-rename\",\"interactive_ready\":true,\"name\":\"verifier\",\"pane_id\":\"w1:p1\",\"revision\":1,\"state_change_seq\":0,\"tab_id\":\"w1:t1\",\"terminal_id\":\"term_65d7c009ca95b1\",\"terminal_title\":\"agent-rename\",\"terminal_title_stripped\":\"agent-rename\",\"workspace_id\":\"w1\"},\"argv\":[\"codex\",\"--no-daemon\",\"--no-alt-screen\",\"--sandbox\",\"read-only\"],\"type\":\"agent_started\"}}\n"
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Apply renames only target agent",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync has no write before Yes",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Default No sends no rename",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Yes syncs explicit label without renaming pane",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Pasted newline stays invalid without rename",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Changed source confirmation rejected",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Changed agent name confirmation rejected",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Invalid pane label disables Yes",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Sync agent name shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Missing pane label disables Yes",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Small terminal disables Apply",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Original agent process and focus survive popups",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Second dedicated agent detected",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Invocation target survives later focus change",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Duplicate name retains dialog and input",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Moved target rejected through old alias",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Rename agent shortcut opens popup",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Exited target closes safely without redirect",
+      "result": "Passed",
+      "details": "Herdr closes the popup when closing its last-pane tab; no affirmative key is sent after host closure."
+    },
+    {
+      "scenario": "Uninstall preserves later config values comments and user bindings",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Uninstall restores only displaced legacy binding",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Uninstall removes registration and resolved recovery record",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Repeated uninstall is harmless",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Unlink preserves config and checkout",
+      "result": "Passed",
+      "details": ""
+    },
+    {
+      "scenario": "Registry clean after unlink",
+      "result": "Passed",
+      "details": ""
+    }
+  ]
+}

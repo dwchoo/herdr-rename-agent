@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+script_path=$(readlink -f -- "$0")
+plugin_root=$(dirname -- "$(dirname -- "$script_path")")
+if command -v uv >/dev/null 2>&1; then
+    uv venv --allow-existing "$plugin_root/.venv"
+    uv pip install --python "$plugin_root/.venv/bin/python" --require-hashes -r "$plugin_root/requirements.lock"
+else
+    python3 -m venv "$plugin_root/.venv"
+    "$plugin_root/.venv/bin/python" -m pip install --require-hashes -r "$plugin_root/requirements.lock"
+fi

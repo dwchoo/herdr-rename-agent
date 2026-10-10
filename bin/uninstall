@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+script_path=$(readlink -f -- "$0")
+exec "$(dirname -- "$script_path")/manage" uninstall "$@"

@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │dwchoo@dwchoo-Macmini:~/herdr-rename-agent$ codex --no-alt-screen --sandb 
+ · herdr-rename-agent    │ox read-only                                                              
+   master                │                                                                          
+                         │  >_ OpenAI Codex (v0.162.1)                                              
+                         │     ~/herdr-rename-agent                                                 
+                         │                                                                          
+                         │  Tip: Use /mcp to list configured MCP tools.                             
+                         │                                                                          
+                         │       ┌Sync agent name───────────────────────────────────────────┐       
+                         │› 1uk C│ The pane name will be used as the agent name.            │       
+                         │       │                                                          │       
+                         │  GPT-6│ Current agent name:                                      │ view  
+                         │       │ renamed-verifier                                         │       
+                         │       │ New agent name:                                          │       
+ new                 menu│       │ backend-api                                              │       
+─────────────────────────│       │                                                          │       
+ agents           grouped│       │                                                          │       
+                         │       │                                                          │       
+ · herdr-rename-agent    │       │                                                          │       
+   renamed-verifier      │       │                                                          │       
+                         │       │                                         [ Yes ]  [ No ]  │       
+                         │       └──────────────────────────────────────────────────────────┘       
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                        «│                                                                          

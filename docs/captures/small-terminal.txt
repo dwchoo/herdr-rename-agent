@@ -1,0 +1,10 @@
+ · herdr-rename-age…  tab 1 │         
+ no agents                  │ switch  
+┌Rename agent────────────────────────┐
+│Enlarge the terminal to continue. P │
+│ress Esc to cancel.                 │
+│                                    │
+│                                    │
+│                                    │
+│                                    │
+└────────────────────────────────────┘

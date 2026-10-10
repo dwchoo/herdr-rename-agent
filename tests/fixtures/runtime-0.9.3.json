@@ -1,0 +1,72 @@
+{
+  "provenance": "Actual isolated Herdr 0.9.3 with idle Codex; dynamic ids retained",
+  "agent": {
+    "agent": "codex",
+    "agent_status": "unknown",
+    "cwd": "/home/dwchoo/herdr-rename-agent",
+    "focused": true,
+    "foreground_cwd": "/home/dwchoo/herdr-rename-agent",
+    "interactive_ready": true,
+    "name": "backend-api",
+    "pane_id": "w1:p1",
+    "revision": 2,
+    "state_change_seq": 0,
+    "tab_id": "w1:t1",
+    "terminal_id": "term_65d72b95deb4e1",
+    "terminal_title": "herdr-rename-agent",
+    "terminal_title_stripped": "herdr-rename-agent",
+    "workspace_id": "w1"
+  },
+  "pane": {
+    "agent": "codex",
+    "agent_status": "unknown",
+    "cwd": "/home/dwchoo/herdr-rename-agent",
+    "focused": true,
+    "foreground_cwd": "/home/dwchoo/herdr-rename-agent",
+    "label": "source-changed",
+    "pane_id": "w1:p1",
+    "revision": 2,
+    "scroll": {
+      "max_offset_from_bottom": 1,
+      "offset_from_bottom": 0,
+      "viewport_rows": 31
+    },
+    "tab_id": "w1:t1",
+    "terminal_id": "term_65d72b95deb4e1",
+    "terminal_title": "herdr-rename-agent",
+    "terminal_title_stripped": "herdr-rename-agent",
+    "workspace_id": "w1"
+  },
+  "process_info": {
+    "foreground_process_group_id": 3675034,
+    "foreground_processes": [
+      {
+        "argv": [
+          "node",
+          "/home/dwchoo/.nvm/versions/node/v24.21.0/bin/codex",
+          "--no-alt-screen",
+          "--sandbox",
+          "read-only"
+        ],
+        "cmdline": "node /home/dwchoo/.nvm/versions/node/v24.21.0/bin/codex --no-alt-screen --sandbox read-only",
+        "cwd": "/home/dwchoo/herdr-rename-agent",
+        "name": "MainThread",
+        "pid": 3675034
+      },
+      {
+        "argv": [
+          "/home/dwchoo/.nvm/versions/node/v24.21.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+          "--no-alt-screen",
+          "--sandbox",
+          "read-only"
+        ],
+        "cmdline": "/home/dwchoo/.nvm/versions/node/v24.21.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex --no-alt-screen --sandbox read-only",
+        "cwd": "/home/dwchoo/herdr-rename-agent",
+        "name": "codex",
+        "pid": 3675042
+      }
+    ],
+    "pane_id": "w1:p1",
+    "shell_pid": 3674793
+  }
+}

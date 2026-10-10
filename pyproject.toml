@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "herdr-agent-rename"
+version = "0.1.0"
+description = "Small one-shot agent rename dialogs for Herdr"
+requires-python = ">=3.11"
+dependencies = ["prompt_toolkit==3.0.52", "wcwidth==0.2.13", "tomlkit==0.15.1"]
+
+[project.optional-dependencies]
+test = ["pytest==8.4.2", "pyte==0.8.2", "Pillow==11.3.0"]
+
+[project.scripts]
+herdr-agent-rename = "herdr_agent_rename.action:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

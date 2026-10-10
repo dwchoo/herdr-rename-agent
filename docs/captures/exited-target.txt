@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │                                                                         ▕
+ · herdr-rename-agent    │  >_ OpenAI Codex (v0.162.1)                                             ▐
+   master                │     ~/herdr-rename-agent                                                ▐
+                         │                                                                         ▐
+                         │  Tip: Use /mcp to list configured MCP tools.                            ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │› Ask Codex to do anything                                               ▐
+                         │                                                                         ▐
+                         │  GPT-6.1-Sol high · master · Context 100% le…  ⚠ 1 warning · f2 to view ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+ new                 menu│                                                                         ▐
+─────────────────────────│                                                                         ▐
+ agents           grouped│                                                                         ▐
+                         │                                                                         ▐
+ · herdr-rename-agent    │                                                                         ▐
+   focus-safe            │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                         │                                                                         ▐
+                        «│                                                                         ▐

@@ -1,0 +1,39 @@
+id = "local.agent-rename"
+name = "Agent Rename"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+platforms = ["linux"]
+description = "Rename the current agent or copy its pane name after confirmation."
+
+[[build]]
+command = ["bin/setup"]
+
+[[actions]]
+id = "open"
+title = "Rename current agent"
+description = "Edit the current agent name in a small dialog."
+contexts = ["pane"]
+command = ["bin/agent-rename", "open"]
+
+[[actions]]
+id = "sync"
+title = "Set agent name from pane name"
+description = "Copy the current pane name to the agent after Yes/No confirmation."
+contexts = ["pane"]
+command = ["bin/agent-rename", "sync"]
+
+[[panes]]
+id = "rename"
+title = "Rename agent"
+placement = "popup"
+width = 56
+height = 11
+command = ["bin/agent-rename", "dialog-open"]
+
+[[panes]]
+id = "sync"
+title = "Sync agent name"
+placement = "popup"
+width = 60
+height = 14
+command = ["bin/agent-rename", "dialog-sync"]

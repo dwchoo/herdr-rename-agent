@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │┌ source-changed ───────────────────┐┌───────────────────────────────────┐
+ · herdr-rename-agent    ││                                  ▕││dwchoo@dwchoo-Macmini:~/herdr-rena │
+   master                ││  >_ OpenAI Codex (v0.162.1)      ▐││me-agent$ codex --no-alt-screen -- │
+                         ││     ~/herdr-rename-agent         ▐││sandbox read-only                  │
+                         ││                                  ▐││                                   │
+                         ││  Tip: Use /mcp to list configured▐││  >_ OpenAI Codex (v0.162.1)       │
+                         ││  MCP tools.                      ▐││     ~/herdr-rename-agent          │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││  Tip: Use /side to start a side   │
+                         ││› 1uk Codex to do anything        ▐││  conversation in a temporary fork │
+                         ││        ┌Rename agent──────────────────────────────────────────┐n       │
+                         ││  GPT-6.│ Name                                                 │        │
+                         ││        │ reserved-name                                        │        │
+                         ││        │                                                      │        │
+ new                 menu││        │ This agent name is already in use. agent name        │        │
+─────────────────────────││        │ reserved-name is already used; candidates:           │        │
+ agents           grouped││        │ terminal_id=term_65d72bafcba33c pane_id=w1:p2        │1 · f2  │
+                         ││        │ workspace_id=w1 tab_id=w1:t1...                      │        │
+ · herdr-rename-agent    ││        │                               [ Apply ]  [ Cancel ]  │        │
+   focus-safe            ││        │                                                      │        │
+ · herdr-rename-agent    ││        └──────────────────────────────────────────────────────┘        │
+   reserved-name         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+script_path=$(readlink -f -- "$0")
+plugin_root=$(dirname -- "$(dirname -- "$script_path")")
+if [ ! -x "$plugin_root/.venv/bin/python" ]; then
+    printf '%s\n' 'Plugin dependencies are missing. Run bin/setup in the plugin directory.' >&2
+    exit 1
+fi
+export PYTHONPATH="$plugin_root/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$plugin_root/.venv/bin/python" -m herdr_agent_rename.action "$@"

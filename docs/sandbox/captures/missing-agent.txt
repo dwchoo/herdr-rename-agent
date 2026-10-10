@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │bash-5.2$ 1u                                                              
+ · agent-rename          │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │         ┌Rename agent──────────────────────────────────────────┐         
+                         │         │ Name                                                 │         
+                         │         │                                                      │         
+                         │         │                                                      │         
+ new                 menu│         │ No running agent was found in this pane. agent       │         
+─────────────────────────│         │ target w1:p1 not found                               │         
+ agents           grouped│         │                                                      │         
+                         │         │                                                      │         
+                         │         │                               [ Apply ]  [ Cancel ]  │         
+                         │         │                                                      │         
+                         │         └──────────────────────────────────────────────────────┘         
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                        «│                                                                          

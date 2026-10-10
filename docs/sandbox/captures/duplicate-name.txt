@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │┌ source-changed ───────────────────┐┌───────────────────────────────────┐
+ · agent-rename          ││                                  ▕││bash-5.2$ codex --no-daemon --no-a │
+                         ││  >_ OpenAI Codex (v0.162.1)      ▐││lt-screen --sandbox read-only      │
+                         ││     /workspace/agent-rename      ▐││                                   │
+                         ││                                  ▐││  >_ OpenAI Codex (v0.162.1)       │
+                         ││  To get started, describe a task ▐││     /workspace/agent-rename       │
+                         ││  or try one of these commands:   ▐││                                   │
+                         ││                                  ▐││  To get started, describe a task  │
+                         ││  /init - create an AGENTS.md file▐││  or try one of these commands:    │
+                         ││  with instructions for Codex     ▐││                                   │
+                         ││  /statu┌Rename agent──────────────────────────────────────────┐md file │
+                         ││  config│ Name                                                 │ex      │
+                         ││  /permi│ reserved-name                                        │ssion   │
+                         ││  is all│                                                      │        │
+ new                 menu││  /model│ This agent name is already in use. agent name        │t Codex │
+─────────────────────────││  reason│ reserved-name is already used; candidates:           │        │
+ agents           grouped││  /revie│ terminal_id=term_65d7c02455cb6c pane_id=w1:p2        │l and   │
+                         ││  find i│ workspace_id=w1 tab_id=w1:t1...                      │        │
+ · agent-rename          ││        │                               [ Apply ]  [ Cancel ]  │ges and │
+   focus-safe            ││        │                                                      │        │
+ · agent-rename          ││› 1uk Co└──────────────────────────────────────────────────────┘        │
+   reserved-name         ││                                  ▐││                                   │
+                         ││  GPT-6.1-Sol default …  ⚠ 1 · f2 ▐││› 1uk Codex to do anything         │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││  GPT-6.1-Sol default …  ⚠ 1 · f2  │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                         ││                                  ▐││                                   │
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

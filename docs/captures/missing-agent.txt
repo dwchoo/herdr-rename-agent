@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │dwchoo@dwchoo-Macmini:~/herdr-rename-agent$ 1u                            
+ · herdr-rename-agent    │                                                                          
+   master                │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │         ┌Rename agent──────────────────────────────────────────┐         
+                         │         │ Name                                                 │         
+                         │         │                                                      │         
+                         │         │                                                      │         
+ new                 menu│         │ No running agent was found in this pane. agent       │         
+─────────────────────────│         │ target w1:p1 not found                               │         
+ agents           grouped│         │                                                      │         
+                         │         │                                                      │         
+                         │         │                               [ Apply ]  [ Cancel ]  │         
+                         │         │                                                      │         
+                         │         └──────────────────────────────────────────────────────┘         
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                        «│                                                                          

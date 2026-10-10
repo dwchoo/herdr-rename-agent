@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │dwchoo@dwchoo-Macmini:~/herdr-rename-agent$ codex --no-alt-screen --sandb 
+ · herdr-rename-agent    │ox read-only                                                              
+   master                │                                                                          
+                         │  >_ OpenAI Codex (v0.162.1)                                              
+                         │     ~/herdr-rename-agent                                                 
+                         │                                                                          
+                         │  Tip: Use /mcp to list configured MCP tools.                             
+                         │                                                                          
+                         │                                                                          
+                         │› 1uk Codex to do anything                                                
+                         │         ┌Rename agent──────────────────────────────────────────┐         
+                         │  GPT-6.1│ Name                                                 │to view  
+                         │         │ invalid\nname                                        │         
+                         │         │                                                      │         
+ new                 menu│         │ Use 1–32 characters: a lowercase letter first, then  │         
+─────────────────────────│         │ lowercase letters, digits, underscores, or hyphens.  │         
+ agents           grouped│         │                                                      │         
+                         │         │                                                      │         
+ · herdr-rename-agent    │         │                               [ Apply ]  [ Cancel ]  │         
+   backend-api           │         │                                                      │         
+                         │         └──────────────────────────────────────────────────────┘         
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                        «│                                                                          
