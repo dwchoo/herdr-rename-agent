@@ -6,11 +6,48 @@ import os
 import sys
 
 from .client import HerdrClient, sanitize
-from .context import cleanup_handoff, decode_handoff, encode_handoff, parse_context
+from .context import (
+    cleanup_handoff, decode_handoff, decode_sync_handoff, encode_handoff, freeze_workspace,
+    parse_context, parse_sync_context,
+)
 from .models import HerdrError, Invocation
+from .sync import SyncRunner, collect_plan
+
+ALL_MATCH = "All agent names already match their pane names."
+
+
+def launch_sync(env: dict[str, str]) -> None:
+    """Freeze the invoking workspace and its panes, then pick the popup mode.
+
+    No eligible and no problem rows: notification only. No eligible rows but
+    problems: information popup. Otherwise: confirmation popup. The plan
+    travels in the handoff; ``decode_sync_handoff`` returns it to the popup.
+    """
+    client = HerdrClient(env)
+    try:
+        client.verify_support()
+        invocation = freeze_workspace(parse_sync_context(env), client.pane_get)
+        plan = collect_plan(client, invocation.workspace_id)
+    except HerdrError as exc:
+        try:
+            client.notify(sanitize(str(exc)))
+        except HerdrError:
+            pass
+        raise
+    if plan.mode == "noop":
+        client.notify(ALL_MATCH)
+        return
+    handoff = encode_handoff(invocation, None, "", env, plan)
+    try:
+        client.open_popup(invocation, "sync", handoff)
+    except BaseException:
+        cleanup_handoff(handoff, env)
+        raise
 
 
 def launch(mode: str, env: dict[str, str]) -> None:
+    if mode == "sync":
+        return launch_sync(env)
     client = HerdrClient(env)
     snapshot = None
     error = ""
@@ -36,7 +73,29 @@ def launch(mode: str, env: dict[str, str]) -> None:
         raise
 
 
+async def dialog_sync(env: dict[str, str]) -> bool:
+    """Workspace sync popup: ``ui.run_sync_dialog(runner)`` shows ``runner.mode``."""
+    from . import ui
+
+    plan = None
+    try:
+        invocation, plan, error, connection = decode_sync_handoff(env)
+    except HerdrError as exc:
+        error, connection = str(exc), {}
+    if plan is None and not error:
+        error = "The workspace could not be identified."
+    client = HerdrClient({**env, **connection})
+    if plan is not None:
+        try:
+            await asyncio.to_thread(client.verify_support)
+        except HerdrError as exc:
+            plan, error = None, str(exc)
+    return await ui.run_sync_dialog(SyncRunner(client, plan, error))
+
+
 async def dialog(mode: str, env: dict[str, str]) -> bool:
+    if mode == "sync":
+        return await dialog_sync(env)
     from .controller import Controller
     from .ui import run_dialog
 

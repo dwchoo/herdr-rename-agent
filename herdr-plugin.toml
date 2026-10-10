@@ -26,8 +26,8 @@ command = ["bin/agent-rename", "sync"]
 id = "rename"
 title = "Rename agent"
 placement = "popup"
-width = 56
-height = 11
+width = 57
+height = 7
 command = ["bin/agent-rename", "dialog-open"]
 
 [[panes]]

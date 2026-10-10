@@ -144,3 +144,93 @@ def test_installed_not_found_error_envelopes(monkeypatch, kind):
         HerdrClient({"HERDR_BIN_PATH": "/herdr"})._json([kind, "get", "w0:p99999"])
     assert failure.value.code == kind + "_not_found"
     assert not failure.value.uncertain
+
+
+SYNC = json.loads((Path(__file__).parent / "fixtures/sync-0.9.3.json").read_text())
+
+
+def envelope(fixture):
+    return json.dumps(fixture)
+
+
+def test_pane_list_and_agent_list_literal_argv_and_real_shapes(monkeypatch):
+    calls = install_run(monkeypatch, [(0, envelope(SYNC["pane_list_ws1"]), ""), (0, envelope(SYNC["agent_list"]), "")])
+    client = HerdrClient({"HERDR_BIN_PATH": "/herdr"}, timeout=0.5)
+    panes = client.pane_list("w1")
+    agents = client.agent_list()
+    assert calls[0][0] == ["/herdr", "pane", "list", "--workspace", "w1"]
+    assert calls[1][0] == ["/herdr", "agent", "list"]
+    assert all(kwargs["timeout"] == 0.5 and kwargs["stdin"] == subprocess.DEVNULL for _, kwargs in calls)
+    assert [p["pane_id"] for p in panes] == ["w1:p1", "w1:p3", "w1:p2", "w1:p4", "w1:p5"]
+    assert "label" not in panes[2]
+    assert {a["name"] for a in agents} == {"alpha", "beta", "gamma"}
+
+
+def test_tab_list_and_workspace_label(monkeypatch):
+    install_run(monkeypatch, [(0, envelope(SYNC["tab_list"]), ""), (0, envelope(SYNC["workspace_list"]), "")])
+    client = HerdrClient({"HERDR_BIN_PATH": "/herdr"})
+    assert [t["label"] for t in client.tab_list("w1")][:2] == ["1", "second"]
+    assert client.workspace_label("w2") == "second-ws"
+
+
+@pytest.mark.parametrize("raw", [
+    {"id": "x", "result": {"type": "pane_list", "panes": "no"}},
+    {"id": "x", "result": {"type": "other", "panes": []}},
+    {"id": "x", "result": {"type": "pane_list", "panes": [None]}},
+    {"id": "x", "result": {"type": "pane_list", "panes": [{"pane_id": "w1:p1"}]}},
+])
+def test_malformed_list_responses_are_unsupported(monkeypatch, raw):
+    install_run(monkeypatch, [(0, json.dumps(raw), "")])
+    with pytest.raises(HerdrError, match="not supported"):
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).pane_list("w1")
+
+
+def test_list_connection_failure_has_a_connection_code(monkeypatch):
+    install_run(monkeypatch, [subprocess.TimeoutExpired("herdr", 5)])
+    with pytest.raises(HerdrError) as failure:
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).agent_list()
+    assert failure.value.code == "connection" and not failure.value.uncertain
+
+
+def test_clear_name_literal_argv_and_uncertain_write(monkeypatch):
+    unnamed = {k: v for k, v in AGENT.items() if k != "name"}
+    calls = install_run(monkeypatch, [(0, response(data=unnamed), ""), subprocess.TimeoutExpired("herdr", 5)])
+    client = HerdrClient({"HERDR_BIN_PATH": "/herdr"})
+    assert "name" not in client.clear_name("w1:p1")
+    assert calls[0][0] == ["/herdr", "agent", "rename", "w1:p1", "--clear"]
+    with pytest.raises(HerdrError) as failure:
+        client.clear_name("w1:p1")
+    assert failure.value.uncertain and len(calls) == 2
+
+
+def test_clear_agent_not_found_is_definite(monkeypatch):
+    raw = json.dumps({"id": "cli:agent:rename", "error": {"code": "agent_not_found", "message": "agent target does not currently host an agent"}})
+    install_run(monkeypatch, [(1, "", raw)])
+    with pytest.raises(HerdrError) as failure:
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).clear_name("w1:p3")
+    assert failure.value.code == "agent_not_found" and not failure.value.uncertain
+
+
+def test_pane_get_has_no_agent_requirement(monkeypatch):
+    install_run(monkeypatch, [(0, response("pane_info", "pane", {**AGENT, "agent": None}), "")])
+    assert HerdrClient({"HERDR_BIN_PATH": "/herdr"}).pane_get("w1:p1")["workspace_id"] == "w1"
+
+
+def _drop_method(name):
+    def mutate(request):
+        request["oneOf"] = [m for m in request["oneOf"] if m["properties"]["method"]["const"] != name]
+    return mutate
+
+
+@pytest.mark.parametrize("mutate", [
+    _drop_method("pane.list"),
+    _drop_method("agent.list"),
+    lambda request: request["$defs"]["AgentRenameParams"]["properties"]["name"].update(type="string"),
+    lambda request: request["$defs"]["PaneListParams"]["properties"].pop("workspace_id"),
+])
+def test_list_and_clear_capabilities_are_required(monkeypatch, mutate):
+    schema = json.loads((Path(__file__).parent / "fixtures/schema-0.9.3.json").read_text())
+    mutate(schema["schemas"]["request"])
+    install_run(monkeypatch, [(0, "herdr 0.9.3\n", ""), (0, json.dumps(schema), "")])
+    with pytest.raises(HerdrError, match="not supported"):
+        HerdrClient({"HERDR_BIN_PATH": "/herdr"}).verify_support()

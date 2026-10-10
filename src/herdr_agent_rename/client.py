@@ -35,9 +35,9 @@ class HerdrClient:
                                   text=True, encoding="utf-8", errors="replace", env=self.env,
                                   timeout=self.timeout, check=False)
         except subprocess.TimeoutExpired:
-            raise HerdrError(UNCERTAIN if write else CONNECTION, uncertain=write) from None
+            raise HerdrError(UNCERTAIN if write else CONNECTION, uncertain=write, code="" if write else "connection") from None
         except OSError:
-            raise HerdrError(UNCERTAIN if write else CONNECTION, uncertain=write) from None
+            raise HerdrError(UNCERTAIN if write else CONNECTION, uncertain=write, code="" if write else "connection") from None
 
     def _json(self, argv: list[str], *, write: bool = False) -> dict:
         completed = self._exec(argv, write=write)
@@ -70,7 +70,7 @@ class HerdrClient:
             if output == completed.stdout and completed.returncode == 0 and isinstance(raw, dict) and isinstance(raw.get("result"), dict) and isinstance(raw.get("id"), str):
                 return raw["result"]
         if completed.returncode and not write:
-            raise HerdrError(CONNECTION)
+            raise HerdrError(CONNECTION, code="connection")
         raise HerdrError(UNCERTAIN if write else UNSUPPORTED, uncertain=write, code="unconfirmed" if write else "unsupported")
 
     def verify_support(self) -> None:
@@ -88,7 +88,7 @@ class HerdrClient:
             req = raw["request"]
             methods = {item["properties"]["method"]["const"] for item in req["oneOf"]}
             definitions = req["$defs"]
-            required = {"agent.get", "agent.rename", "pane.get", "pane.process_info", "plugin.pane.open", "notification.show"}
+            required = {"agent.get", "agent.list", "agent.rename", "pane.get", "pane.list", "pane.process_info", "plugin.pane.open", "notification.show"}
             valid = required <= methods and "popup" in definitions["PluginPanePlacement"]["enum"]
             for definition, fields in (
                 ("AgentRenameParams", {"target", "name"}),
@@ -97,6 +97,11 @@ class HerdrClient:
             ):
                 properties = definitions[definition]["properties"]
                 valid = valid and isinstance(properties, dict) and fields <= properties.keys()
+            # Explicit-name removal sends ``name: null`` (CLI ``--clear``).
+            name_type = definitions["AgentRenameParams"]["properties"]["name"]["type"]
+            valid = valid and "null" in name_type
+            list_params = definitions["PaneListParams"]["properties"]
+            valid = valid and isinstance(list_params, dict) and "workspace_id" in list_params
         except (ValueError, TypeError, KeyError, RecursionError):
             valid = False
         if schema.returncode or not valid:
@@ -108,6 +113,9 @@ class HerdrClient:
         record = result.get(key)
         if result.get("type") != kind or not isinstance(record, dict):
             raise HerdrError(UNCERTAIN if write else UNSUPPORTED, uncertain=write, code="unconfirmed" if write else "unsupported")
+        return self._check_record(record, write)
+
+    def _check_record(self, record: dict, write: bool = False) -> dict:
         for field in ("pane_id", "terminal_id", "workspace_id", "tab_id"):
             if not isinstance(record.get(field), str) or not record[field] or not record[field].isascii() or any(c.isspace() or ord(c) < 32 for c in record[field]):
                 raise HerdrError(UNCERTAIN if write else UNSUPPORTED, uncertain=write, code="unconfirmed" if write else "unsupported")
@@ -120,6 +128,50 @@ class HerdrClient:
         if session is not None and session["kind"] not in {"id", "path"}:
             raise HerdrError(UNCERTAIN if write else UNSUPPORTED, uncertain=write, code="unconfirmed" if write else "unsupported")
         return record
+
+    def _records(self, argv: list[str], kind: str, key: str) -> list[dict]:
+        result = self._json(argv)
+        records = result.get(key)
+        if result.get("type") != kind or not isinstance(records, list):
+            raise HerdrError(UNSUPPORTED, code="unsupported")
+        return [self._check_record(record) if isinstance(record, dict) else self._reject() for record in records]
+
+    @staticmethod
+    def _reject() -> dict:
+        raise HerdrError(UNSUPPORTED, code="unsupported")
+
+    def pane_get(self, pane_id: str) -> dict:
+        """Canonical pane record; the pane need not host an agent."""
+        return self._record(["pane", "get", pane_id], "pane_info", "pane")
+
+    def pane_list(self, workspace_id: str) -> list[dict]:
+        """Every pane of every tab of one workspace, in Herdr's tab/layout order."""
+        return self._records(["pane", "list", "--workspace", workspace_id], "pane_list", "panes")
+
+    def agent_list(self) -> list[dict]:
+        """Every agent record on the server (all workspaces and tabs)."""
+        return self._records(["agent", "list"], "agent_list", "agents")
+
+    def tab_list(self, workspace_id: str) -> list[dict]:
+        """Tab display records (best effort for the UI; ids and labels only)."""
+        result = self._json(["tab", "list", "--workspace", workspace_id])
+        tabs = result.get("tabs")
+        if result.get("type") != "tab_list" or not isinstance(tabs, list):
+            raise HerdrError(UNSUPPORTED, code="unsupported")
+        if any(not isinstance(t, dict) or not isinstance(t.get("tab_id"), str) for t in tabs):
+            raise HerdrError(UNSUPPORTED, code="unsupported")
+        return tabs
+
+    def workspace_label(self, workspace_id: str) -> str | None:
+        """Display label of one workspace, or ``None`` when it cannot be read."""
+        result = self._json(["workspace", "list"])
+        items = result.get("workspaces")
+        if result.get("type") != "workspace_list" or not isinstance(items, list):
+            raise HerdrError(UNSUPPORTED, code="unsupported")
+        for item in items:
+            if isinstance(item, dict) and item.get("workspace_id") == workspace_id and isinstance(item.get("label"), str):
+                return item["label"]
+        return None
 
     def get_snapshot(self, invocation: Invocation) -> Snapshot:
         pane = self._record(["pane", "get", invocation.pane_id], "pane_info", "pane")
@@ -154,6 +206,10 @@ class HerdrClient:
 
     def rename(self, pane_id: str, name: str) -> dict:
         return self._record(["agent", "rename", pane_id, name], "agent_info", "agent", write=True)
+
+    def clear_name(self, pane_id: str) -> dict:
+        """Remove the explicit agent name (``herdr agent rename <pane> --clear``)."""
+        return self._record(["agent", "rename", pane_id, "--clear"], "agent_info", "agent", write=True)
 
     def open_popup(self, invocation: Invocation, mode: str, handoff: str) -> None:
         argv = ["plugin", "pane", "open", "--plugin", "local.agent-rename", "--entrypoint",

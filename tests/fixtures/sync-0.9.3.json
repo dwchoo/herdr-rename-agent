@@ -1,0 +1,338 @@
+{
+ "agent_list": {
+  "id": "cli:agent:list",
+  "result": {
+   "agents": [
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": true,
+     "foreground_cwd": "/workspace/agent-rename",
+     "interactive_ready": true,
+     "name": "alpha",
+     "pane_id": "w1:p1",
+     "revision": 1,
+     "state_change_seq": 0,
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d2014885b1",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "interactive_ready": true,
+     "name": "beta",
+     "pane_id": "w1:p4",
+     "revision": 1,
+     "state_change_seq": 0,
+     "tab_id": "w1:t2",
+     "terminal_id": "term_65d7d206ae1514",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "interactive_ready": true,
+     "name": "gamma",
+     "pane_id": "w2:p1",
+     "revision": 1,
+     "state_change_seq": 0,
+     "tab_id": "w2:t1",
+     "terminal_id": "term_65d7d20a8846f6",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w2"
+    }
+   ],
+   "type": "agent_list"
+  }
+ },
+ "pane_list_all": {
+  "id": "cli:pane:list",
+  "result": {
+   "panes": [
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": true,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "tester",
+     "pane_id": "w1:p1",
+     "revision": 1,
+     "scroll": {
+      "max_offset_from_bottom": 9,
+      "offset_from_bottom": 0,
+      "viewport_rows": 14
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d2014885b1",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "docs-shell",
+     "pane_id": "w1:p3",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 13
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d206acdd73",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "pane_id": "w1:p2",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 29
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d206ac2092",
+     "workspace_id": "w1"
+    },
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "pane_id": "w1:p4",
+     "revision": 1,
+     "scroll": {
+      "max_offset_from_bottom": 3,
+      "offset_from_bottom": 0,
+      "viewport_rows": 14
+     },
+     "tab_id": "w1:t2",
+     "terminal_id": "term_65d7d206ae1514",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "tab2-extra",
+     "pane_id": "w1:p5",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 13
+     },
+     "tab_id": "w1:t2",
+     "terminal_id": "term_65d7d20a86f425",
+     "workspace_id": "w1"
+    },
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "gamma-label",
+     "pane_id": "w2:p1",
+     "revision": 1,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 31
+     },
+     "tab_id": "w2:t1",
+     "terminal_id": "term_65d7d20a8846f6",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w2"
+    }
+   ],
+   "type": "pane_list"
+  }
+ },
+ "pane_list_ws1": {
+  "id": "cli:pane:list",
+  "result": {
+   "panes": [
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": true,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "tester",
+     "pane_id": "w1:p1",
+     "revision": 1,
+     "scroll": {
+      "max_offset_from_bottom": 9,
+      "offset_from_bottom": 0,
+      "viewport_rows": 14
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d2014885b1",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "docs-shell",
+     "pane_id": "w1:p3",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 13
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d206acdd73",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "pane_id": "w1:p2",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 29
+     },
+     "tab_id": "w1:t1",
+     "terminal_id": "term_65d7d206ac2092",
+     "workspace_id": "w1"
+    },
+    {
+     "agent": "codex",
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "pane_id": "w1:p4",
+     "revision": 1,
+     "scroll": {
+      "max_offset_from_bottom": 3,
+      "offset_from_bottom": 0,
+      "viewport_rows": 14
+     },
+     "tab_id": "w1:t2",
+     "terminal_id": "term_65d7d206ae1514",
+     "terminal_title": "agent-rename",
+     "terminal_title_stripped": "agent-rename",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "cwd": "/workspace/agent-rename",
+     "focused": false,
+     "foreground_cwd": "/workspace/agent-rename",
+     "label": "tab2-extra",
+     "pane_id": "w1:p5",
+     "revision": 0,
+     "scroll": {
+      "max_offset_from_bottom": 0,
+      "offset_from_bottom": 0,
+      "viewport_rows": 13
+     },
+     "tab_id": "w1:t2",
+     "terminal_id": "term_65d7d20a86f425",
+     "workspace_id": "w1"
+    }
+   ],
+   "type": "pane_list"
+  }
+ },
+ "tab_list": {
+  "id": "cli:tab:list",
+  "result": {
+   "tabs": [
+    {
+     "agent_status": "unknown",
+     "focused": true,
+     "label": "1",
+     "number": 1,
+     "pane_count": 3,
+     "tab_id": "w1:t1",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "focused": false,
+     "label": "second",
+     "number": 2,
+     "pane_count": 2,
+     "tab_id": "w1:t2",
+     "workspace_id": "w1"
+    },
+    {
+     "agent_status": "unknown",
+     "focused": false,
+     "label": "1",
+     "number": 1,
+     "pane_count": 1,
+     "tab_id": "w2:t1",
+     "workspace_id": "w2"
+    }
+   ],
+   "type": "tab_list"
+  }
+ },
+ "workspace_list": {
+  "id": "cli:workspace:list",
+  "result": {
+   "type": "workspace_list",
+   "workspaces": [
+    {
+     "active_tab_id": "w1:t1",
+     "agent_status": "unknown",
+     "focused": true,
+     "label": "agent-rename",
+     "number": 1,
+     "pane_count": 5,
+     "tab_count": 2,
+     "workspace_id": "w1"
+    },
+    {
+     "active_tab_id": "w2:t1",
+     "agent_status": "unknown",
+     "focused": false,
+     "label": "second-ws",
+     "number": 2,
+     "pane_count": 1,
+     "tab_count": 1,
+     "workspace_id": "w2"
+    }
+   ]
+  }
+ }
+}

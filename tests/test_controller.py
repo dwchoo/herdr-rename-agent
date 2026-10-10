@@ -58,6 +58,14 @@ class Client:
             raise self.rename_error
         return deepcopy(self.current.agent)
 
+    def clear_name(self, pane_id):
+        self.writes.append((pane_id, None))
+        if self.rename_error is None or self.apply_on_error:
+            self.current.agent.pop("name", None)
+        if self.rename_error:
+            raise self.rename_error
+        return deepcopy(self.current.agent)
+
     def notify(self, title):
         self.notifications.append(title)
 
@@ -101,7 +109,7 @@ def test_cancel_closes_without_read_or_write(mode):
     assert client.reads == client.writes == []
 
 
-@pytest.mark.parametrize("name", ["", "Bad", " new-agent", "new-agent\n", "new-agent🙂"])
+@pytest.mark.parametrize("name", ["Bad", "new agent", "new-agent🙂", "a\x1fb"])
 def test_invalid_input_is_retained_and_never_queries_or_writes(name):
     subject, client = controller()
     assert not submit(subject, name)
@@ -466,3 +474,72 @@ def test_loop_teardown_cancellation_blocks_retry_while_worker_may_continue():
     asyncio.run(run())
     assert client.writes == [("pane-1", "new-name")]
     assert client.reads == [INVOCATION]
+
+
+@pytest.mark.parametrize("raw", [" new-agent", "new-agent\n", "\t new-agent\u3000", "\u00a0\u2028new-agent\u2029\u0085"])
+def test_rust_whitespace_is_trimmed_before_validation_and_write(raw):
+    subject, client = controller()
+    assert submit(subject, raw)
+    assert client.writes == [("pane-1", "new-agent")]
+
+
+@pytest.mark.parametrize("raw", ["\x1cnew-agent", "new-agent\x1f", "\u200bnew-agent", "\ufeffnew-agent"])
+def test_non_rust_whitespace_is_not_trimmed_so_validation_rejects_it(raw):
+    subject, client = controller()
+    assert not submit(subject, raw)
+    assert subject.state == "error" and client.reads == client.writes == []
+
+
+def test_trim_name_matches_unicode_white_space_exactly():
+    from herdr_agent_rename.controller import trim_name
+    spaces = "\t\n\v\f\r \x85\xa0\u1680" + "".join(map(chr, range(0x2000, 0x200B))) + "\u2028\u2029\u202f\u205f\u3000"
+    assert trim_name(spaces + "x y" + spaces) == "x y"
+    assert trim_name("\x1cx\x1f") == "\x1cx\x1f"
+
+
+@pytest.mark.parametrize("raw", ["", "  \n\t "])
+def test_empty_input_clears_the_name_with_one_write_and_verification(raw):
+    subject, client = controller()
+    assert submit(subject, raw)
+    assert client.writes == [("pane-1", None)]
+    assert client.reads == [INVOCATION, INVOCATION]
+    assert "name" not in client.current.agent and subject.state == "closed"
+
+
+def test_clear_of_an_already_unnamed_agent_is_a_zero_write_close():
+    subject, client = controller(initial=snapshot(name=None))
+    assert submit(subject, "")
+    assert client.writes == [] and client.reads == [INVOCATION]
+    assert subject.state == "closed"
+
+
+def test_clear_revalidates_and_skips_the_write_when_the_target_changed():
+    changed = snapshot()
+    changed.agent["terminal_id"] = changed.pane["terminal_id"] = "terminal-2"
+    subject, client = controller(lookups=[changed])
+    assert not submit(subject, "")
+    assert client.writes == [] and not subject.can_submit
+
+
+def test_uncertain_clear_reconciles_on_retry_without_a_second_write():
+    subject, client = controller(rename_error=HerdrError(UNCERTAIN_MESSAGE, uncertain=True), apply_on_error=True)
+    assert not submit(subject, "")
+    assert subject.state == "error" and client.writes == [("pane-1", None)]
+    assert subject.can_submit
+    assert submit(subject, "")
+    assert client.writes == [("pane-1", None)] and subject.state == "closed"
+
+
+def test_uncertain_clear_that_did_not_apply_requires_reopening():
+    subject, client = controller(rename_error=HerdrError(UNCERTAIN_MESSAGE, uncertain=True))
+    assert not submit(subject, "")
+    assert not submit(subject, "")
+    assert client.writes == [("pane-1", None)] and not subject.can_submit
+
+
+def test_clear_not_confirmed_after_the_write_is_uncertain():
+    initial = snapshot()
+    subject, client = controller(initial=initial)
+    client.clear_name = lambda pane: client.writes.append((pane, None)) or {}
+    assert not submit(subject, "")
+    assert "could not be confirmed" in subject.message and client.writes == [("pane-1", None)]

@@ -225,3 +225,68 @@ def test_decode_rejects_oversized_inline_payload_instead_of_accepting_unbounded_
     raw["error"] = "x" * (MAX_INLINE_BYTES + 1)
     with pytest.raises(HerdrError, match="original pane"):
         decode_handoff({**state_env, HANDOFF_KEY: json.dumps(raw)})
+
+
+# --- workspace plans --------------------------------------------------------
+
+from sync_support import prepared, world  # noqa: E402
+from herdr_agent_rename.context import decode_sync_handoff  # noqa: E402
+
+
+def big_plan(count, argv_size):
+    fake, plan = prepared(*[("w1:p%d" % i, "name%d" % i, "old%d" % i) for i in range(1, count + 1)])
+    for snap in plan.snapshots.values():
+        snap.process["foreground_processes"] = [{"pid": 7, "name": "codex", "argv": ["x" * argv_size], "cwd": "/" + "c" * 5000}]
+        snap.agent["tokens"] = {"noise": "n" * 5000}
+    return plan
+
+
+def test_small_plan_stays_inline_and_roundtrips(state_env):
+    plan = big_plan(3, 10)
+    encoded = encode_handoff(Invocation("", "w1"), None, "", state_env, plan)
+    assert "state_file" not in json.loads(encoded)
+    invocation, decoded, error, connection = decode_sync_handoff({**state_env, HANDOFF_KEY: encoded})
+    assert invocation == Invocation("", "w1") and error == "" and connection["HERDR_BIN_PATH"] == "/opt/herdr"
+    assert decoded.rows == plan.rows and set(decoded.snapshots) == set(plan.snapshots)
+
+
+def test_many_pane_plan_uses_one_private_consumed_file_and_keeps_check_fields(state_env):
+    plan = big_plan(60, 20_000)
+    encoded = encode_handoff(Invocation("w1:p1", "w1", "w1:t1"), None, "", state_env, plan)
+    path = file_path(encoded)
+    assert path.stat().st_size > 1_000_000 and stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert len(encoded.encode()) < MAX_INLINE_BYTES
+    invocation, decoded, _, _ = decode_sync_handoff({**state_env, HANDOFF_KEY: encoded})
+    assert invocation.workspace_id == "w1" and decoded.rows == plan.rows and not path.exists()
+    assert "tokens" not in decoded.snapshots["w1:p7"].agent
+    assert decoded.snapshots["w1:p7"].process["foreground_processes"][0]["argv"] == ["x" * 20_000]
+    with pytest.raises(HerdrError, match="original pane"):
+        decode_sync_handoff({**state_env, HANDOFF_KEY: encoded})
+
+
+def test_plan_payload_has_the_same_hard_bound(state_env, monkeypatch):
+    monkeypatch.setattr(context, "MAX_FILE_BYTES", MAX_INLINE_BYTES + 100)
+    with pytest.raises(HerdrError, match="too large"):
+        encode_handoff(Invocation("", "w1"), None, "", state_env, big_plan(40, 5000))
+    assert not list(Path(state_env["HERDR_PLUGIN_STATE_DIR"]).iterdir())
+
+
+def test_plan_with_mismatched_snapshot_or_workspace_is_rejected(state_env):
+    plan = big_plan(2, 10)
+    raw = json.loads(encode_handoff(Invocation("", "w1"), None, "", state_env, plan))
+    raw["plan"]["snapshots"]["w1:p1"]["pane"]["pane_id"] = "w1:p2"
+    with pytest.raises(HerdrError):
+        decode_sync_handoff({HANDOFF_KEY: json.dumps(raw)})
+    raw = json.loads(encode_handoff(Invocation("", "w1"), None, "", state_env, plan))
+    raw["invocation"]["workspace_id"] = "w9"
+    with pytest.raises(HerdrError):
+        decode_sync_handoff({HANDOFF_KEY: json.dumps(raw)})
+
+
+def test_plan_file_with_unsafe_mode_is_rejected_and_kept(state_env):
+    encoded = encode_handoff(Invocation("", "w1"), None, "", state_env, big_plan(60, 20_000))
+    path = file_path(encoded)
+    path.chmod(0o644)
+    with pytest.raises(HerdrError):
+        decode_sync_handoff({**state_env, HANDOFF_KEY: encoded})
+    assert path.exists()
