@@ -86,3 +86,7 @@ Theme: Herdr's `auto_switch = true` depends on the host terminal appearance, whi
 Closing the last pane in a popup's original tab can make Herdr close the popup itself. The plugin cannot retain an error dialog after its host terminal is removed. The isolated test observed this host closure without renaming another agent. Herdr also closes a popup when the workspace focus changes.
 
 The headless test client draws no notification toast, so notification delivery is unverified; the wording is checked only as the `notification show` argument in the sandbox shim log. The implementation sends the notification through `notification show`; Herdr may rate-limit or suppress it.
+
+## Test-only CLI shim
+
+The sandbox E2E (not a real Herdr) starts its private server so that the plugin's Python processes call `tools/herdr_shim.py` in place of the `herdr` binary: it logs each call, runs the real binary with the same argv and returns its status, and, when armed by the harness, injects faults (lost connection, malformed or rewritten JSON, a lost write response, a changed version string, a tampered handoff file, a failing `plugin pane open`). The plugin source is unchanged and the real server never misbehaves, so transport and envelope failures are verified as simulated client-side behavior. Details in [verification.md](verification.md#next-suite-current-revision-plan-section-10-scenarios) and [verification-coverage.md](verification-coverage.md).

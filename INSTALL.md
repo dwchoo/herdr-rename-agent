@@ -45,7 +45,13 @@ bin/install --dry-run
 bin/install         # keeps existing bindings, validates and reloads the config
 ```
 
-The plugin ID and action IDs are unchanged, so bindings and the recovery record stay valid and no migration is needed. Because the plugin is linked to this checkout, runtime code changes take effect the next time a shortcut runs. Changes to `herdr-plugin.toml` (popup sizes, new entrypoints) need a config reload, which `bin/install` performs; when editing the checkout without running `bin/install`, reload manually (`herdr server reload-config` or the UI's reload action). Without `bin/setup` first, the new dialogs fail to import `regex`.
+The plugin ID and action IDs are unchanged, so bindings and the recovery record stay valid and no migration is needed. The plugin is linked to this checkout, so what applies when depends on the kind of change:
+
+- **Applies immediately (next shortcut):** runtime Python code under `src/` and `bin/`. Without `bin/setup` first, the new dialogs fail to import the new `regex` dependency.
+- **Applies only after a config reload:** changes to `herdr-plugin.toml` (rename popup 57x7, sync popup `"80%"` x `"70%"`, action titles and descriptions, new entrypoints). `bin/install` validates and reloads the config; if you edit the checkout without running it, reload manually (`herdr server reload-config` or the UI's reload action).
+- `bin/install` is the deployment step: it reuses the existing bindings, retains the recovery record, and verifies the actions.
+
+If this checkout is already linked in a live Herdr, treat it as live: develop further changes in a separate `git worktree` so that this checkout stays stable.
 
 ## Roll back
 
@@ -56,7 +62,7 @@ bin/setup
 bin/install
 ```
 
-`v0.1.0` is the last single-pane release. The bindings remain valid. In the sandbox, `v0.1.0` cannot be installed over a registration from a different checkout; roll back in the same checkout as shown. Return with `git checkout master && bin/setup && bin/install`.
+`v0.1.0` is the last single-pane release (the current version is 0.2.0). The bindings remain valid; after the checkout, run a config reload (done by `bin/install`) so the old manifest's popup sizes apply. In the sandbox, `v0.1.0` cannot be installed over a registration from a different checkout; roll back in the same checkout as shown. Return with `git checkout master && bin/setup && bin/install`.
 
 ## Uninstall
 

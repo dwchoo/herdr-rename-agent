@@ -2,9 +2,9 @@
 
 This file has two parts: the current revision (workspace sync and the Herdr-style rename dialog; section dated 2026-10-11) and, below it, the historical v0.1.0 results (2026-10-10), which describe the old single-pane UI and are kept for reference only.
 
-# Current revision (version 0.2.0, base HEAD 654748d), 2026-10-11
+# Current revision (version 0.2.0, HEAD b9c946c), 2026-10-11
 
-Status: implemented and verified in an isolated sandbox. It has **not** been installed into or tested against the user's live Herdr environment. The strict identity criterion remains unmet (below).
+Status: implemented and verified in an isolated sandbox. `bin/install` has **not** been run, and no live agent was tested. The user's live Herdr links this checkout, so the runtime code already runs there on the next shortcut, but the live config was not modified and manifest changes await a reload (see [PLAN.md](../PLAN.md#deployment-state)). The strict identity criterion remains unmet (below).
 
 ## Environment and commands
 
@@ -25,7 +25,7 @@ Recorded 2026-10-11, Asia/Seoul:
 464 passed
 
 .venv/bin/python tools/verify_sandbox.py --run --suite next
-104 pass, 0 fail, 0 error, 0 skip (104 scenarios); exit code 0
+104 pass, 0 fail, 0 error, 0 skip (104 scenarios, about 689 s of scenario time); exit code 0
 ```
 
 Every row and scenario phrase of the PLAN section 10 matrix is mapped to the sandbox scenarios that verify it in [verification-coverage.md](verification-coverage.md); the few items that cannot be exercised against a real Herdr, with reasons, are listed at its end.
@@ -93,7 +93,7 @@ Remaining differences, not hidden by the checks:
 - Faults are injected between the plugin and the real server by the test-only shim (the server is not stopped, no real newer Herdr exists, the real server never emits malformed envelopes). A timeout or disconnect after a mutation, uncertain `--clear`, unknown envelopes, missing capabilities and large/tampered handoffs are therefore verified in the sandbox (F, X series) but as shim-simulated transport behavior. The private handoff file's owner check cannot be forged without privileges and remains unit-tested. See [verification-coverage.md](verification-coverage.md#items-not-exercisable-against-a-real-herdr).
 - Popup-open latency was measured only for the v0.1.0 runtime (about 0.26 s to a drawn dialog, [r1-live-findings](r1-live-findings.md#6-popup-open-latency-current-plugin)); no figure is recorded for the current runtime.
 - Python 3.14.7 only. The `python3 -m venv` fallback could not run on this host (no `ensurepip`); the `uv` path was used. Newer Herdr versions need their own checks.
-- Deployment to the user's live environment (`bin/setup`, `bin/install`, config reload) is pending the user's authorization; no live agent was renamed or touched.
+- Deployment to the user's live environment (`bin/setup`, `bin/install`, config reload) is pending the user's authorization (the checkout is already linked, so runtime code is live but manifest changes are not); no live agent was renamed or touched.
 
 ---
 

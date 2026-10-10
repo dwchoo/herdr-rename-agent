@@ -12,7 +12,7 @@ Herdr 0.9.3 has no native agent rename overlay. The dialog reproduces its pane r
 | `prefix+shift+a` | `local.agent-rename.open` | Edit, clear or cancel the agent name of the focused pane. |
 | `prefix+shift+s` | `local.agent-rename.sync` | Preview and confirm copying explicit pane names to agent names for all panes in the current workspace, including other tabs. No is selected initially. |
 
-Status: implemented and verified in an isolated sandbox, not yet deployed to a live Herdr environment; see [verification results](docs/verification-results.md) for exactly what passed. The previous single-pane release is tagged `v0.1.0`. The manifest and package version is 0.2.0.
+Status: implemented and verified in an isolated sandbox (464 unit tests; 104 of 104 sandbox scenarios); `bin/install` has not been run on a live Herdr yet. See [verification results](docs/verification-results.md) for exactly what passed. The previous single-pane release is tagged `v0.1.0`. The manifest and package version is 0.2.0.
 
 ## Name rules
 
@@ -137,18 +137,18 @@ bin/uninstall
 
 Uninstall never restores a whole config backup. Later theme/settings changes and unrelated bindings/comments remain. A newer user binding wins over restoration; any blocked former binding stays in a private scoped recovery record, whose path is printed. The checkout, `.venv`, and plugin config/state directories remain. See [INSTALL.md](INSTALL.md#uninstall) for offline cleanup and recovery. Raw `herdr plugin unlink` alone leaves config bindings in place. [Official removal contract](https://github.com/herdrdev/herdr/blob/master/docs/versions/0.9.3/website/src/content/docs/plugins.mdx#install-and-link)
 
-To update an existing install, run `bin/setup` (refreshes `.venv`, including the `regex` dependency), then `bin/install` and reload; see [INSTALL.md](INSTALL.md#update-an-existing-install). Existing matching bindings are not duplicated. Herdr plugin v1 has no separate `plugin update` command. To roll back: `git checkout v0.1.0 && bin/setup && bin/install`. Future Herdr versions require fresh API and UI verification; the minimum version declaration does not certify them.
+To update an existing install, run `bin/setup` (refreshes `.venv`, including the `regex` dependency), then `bin/install` (which also reloads the config; manifest changes such as popup sizes need that reload, while runtime Python changes apply on the next shortcut because the plugin is linked to the checkout); see [INSTALL.md](INSTALL.md#update-an-existing-install). Existing matching bindings are not duplicated. Herdr plugin v1 has no separate `plugin update` command. To roll back: `git checkout v0.1.0 && bin/setup && bin/install`. Future Herdr versions require fresh API and UI verification; the minimum version declaration does not certify them.
 
 ## Development
 
-Install the test dependency lock and run the suite:
+If the plugin is linked to this checkout in a live Herdr, edits here affect it (runtime code on the next shortcut, manifest changes after a reload), so develop in a separate `git worktree`. Install the test dependency lock and run the suite:
 
 ```bash
 uv pip install --python .venv/bin/python --require-hashes -r requirements-test.lock
 .venv/bin/python -m pytest -q
 ```
 
-If setup used Python's fallback instead of `uv`, use `.venv/bin/python -m pip install --require-hashes -r requirements-test.lock` for the first command. Tests use isolated fixtures and pseudo-terminals; they never contact your Herdr.
+If setup used Python's fallback instead of `uv`, use `.venv/bin/python -m pip install --require-hashes -r requirements-test.lock` for the first command. Tests use isolated fixtures and pseudo-terminals; they never contact your Herdr. Current result: 464 unit tests pass.
 
 For real Herdr E2E inside a disposable Linux OS sandbox (needs `bubblewrap`, `herdr` and `codex` on PATH):
 
@@ -156,6 +156,8 @@ For real Herdr E2E inside a disposable Linux OS sandbox (needs `bubblewrap`, `he
 .venv/bin/python tools/verify_sandbox.py --run --suite next   # workspace sync, rename, themes, installer lifecycle
 .venv/bin/python tools/verify_sandbox.py --run                # original single-pane suite (v0.1.0 runtime only)
 ```
+
+The next suite takes about 12 minutes of scenario time (the wrapper allows 55 minutes, the old suite 4 minutes, `--suite all` 60 minutes). `--only S1,R03,T` runs scenarios by ID prefix, `--next-output DIR` redirects the evidence (`--output` does so for the old suite), and `--codex-binary` supplies a native Codex executable if it cannot be discovered. Last full run: 104 pass, 0 fail, 0 error, 0 skip (S 27, R 13, T 4, L 9, H 1, F 17, X 27, E 6). Fault injection and the notification, Stop and handoff checks use a test-only CLI shim that exists only in the sandbox. [Scenario-to-requirement coverage matrix](docs/verification-coverage.md) maps every PLAN section 10 row to the scenarios and lists what cannot be exercised against a real Herdr.
 
 The sandbox uses a copied checkout, a fresh HOME, separate PID/network namespaces and no credentials or model prompts. See the [sandbox procedure](docs/verification.md#os-sandbox-e2e) and the recorded results in [docs/sandbox-next/](docs/sandbox-next/actual-results.json). `tools/probe_r1.py --run` reruns the live investigation behind [r1-live-findings](docs/r1-live-findings.md).
 

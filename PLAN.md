@@ -1,6 +1,14 @@
 # Herdr Agent Rename — Python Revision Plan
 
-Status: implemented and verified, 2026-10-11 (HEAD `f46565a`), in the disposable sandbox only. Not deployed to the user's live Herdr environment: the installed plugin there is still the `v0.1.0` runtime (`d5cd79f`) until the user authorizes P4's last step. Results: [docs/verification-results.md](docs/verification-results.md). This document replaced the earlier Rust rewrite plan; see §12 for why Python was chosen. Sections 1 and 3-8 are the original plan; where R1 changed it, the text below is updated and §2 and §13 record the differences.
+Status: implemented and verified, 2026-10-11 (HEAD `b9c946c`, version 0.2.0), in the disposable sandbox only: 464 unit tests and 104 of 104 sandbox `next` scenarios pass (0 fail, 0 error, 0 skip). `bin/install` (deployment) is pending the user's authorization; see Deployment state below. Results: [docs/verification-results.md](docs/verification-results.md). This document replaced the earlier Rust rewrite plan; see §12 for why Python was chosen. Sections 1 and 3-8 are the original plan; where R1 changed it, the text below is updated and §2 and §13 record the differences.
+
+## Deployment state
+
+- The user's live Herdr has this checkout linked (`herdr plugin list` shows `local.agent-rename` pointing to `/home/dwchoo/herdr-rename-agent`). The runtime Python code at HEAD therefore already runs the next time a shortcut is pressed. Python dependencies are refreshed by `bin/setup`/`bin/install`, which has not been run for 0.2.0.
+- Manifest changes (rename popup 57x7, sync popup `"80%"` x `"70%"`, new action descriptions) take effect only after a config reload, which `bin/install` performs.
+- The live config file was not modified during development. `bin/install` (bindings, validation, reload) is pending the user's authorization.
+- Develop future changes in a separate git worktree so that the linked checkout stays stable.
+- Rollback: `git checkout v0.1.0 && bin/setup && bin/install` ([INSTALL.md](INSTALL.md#roll-back)).
 
 ## 1. Objective and decisions
 
@@ -46,7 +54,7 @@ Dropped with the personal-use scope: GitHub-managed install support and key-mana
 
 Baseline before this revision (`v0.1.0`, `d5cd79f`): 225 Python tests, 42 sandbox checks across 30 scenarios plus 8 isolation checks. It synchronized only the invoking pane. The reported "Yes does not work" was reproduced in R1 (§5 of `docs/r1-live-findings.md`): No was focused by default; Left/Right scrolled the name text instead of switching buttons; there was no `y` binding; `mouse_support=False` meant Herdr never forwarded clicks. Only Tab then Enter reached Yes. No hidden precondition disabled Yes.
 
-The user's config at planning time: `/home/dwchoo/.config/herdr/config.toml` (theme `dracula`, `auto_switch = false`). Existing config restoration metadata must be retained. Nothing in the user's environment has been changed by this revision.
+The user's config at planning time: `/home/dwchoo/.config/herdr/config.toml` (theme `dracula`, `auto_switch = false`). Existing config restoration metadata must be retained. The live config file has not been modified by this revision; the linked checkout is described in Deployment state above.
 
 Herdr 0.9.3 facts (R1 evidence in [docs/r1-source-findings.md](docs/r1-source-findings.md) and [docs/r1-live-findings.md](docs/r1-live-findings.md)):
 
@@ -244,17 +252,17 @@ Installation is unchanged: `bin/install` / `bin/uninstall` from this checkout, u
 
 Rollback: `d5cd79f` is tagged `v0.1.0`. Check out the tag, run `bin/setup` and `bin/install`. Because IDs are unchanged, no binding migration is needed. The sandbox rollback cycle (L05) passed.
 
-Keep the current installation working until the new version passes all gates. Develop and test in the disposable sandbox, and change the user's environment only after the user authorizes deployment.
+Keep the current installation working until the new version passes all gates. Develop and test in the disposable sandbox, and change the user's environment only after the user authorizes deployment. Because the live Herdr links this checkout, edits to runtime code in it run on the next shortcut; use a separate git worktree for further development (see Deployment state).
 
 ## 9. Work stages and acceptance gates
 
 | Stage | Work | Status and evidence |
 | --- | --- | --- |
 | R1: Investigate | Reproduce the Yes failure; mouse delivery; pane/agent list coverage; name uniqueness; replace-on-type, trimming and buttons; percentage popup sizes. | **Done.** [r1-source-findings](docs/r1-source-findings.md), [r1-live-findings](docs/r1-live-findings.md), `tools/probe_r1.py`, fixtures. The native agent rename overlay does not exist, so the pane rename overlay is the reference, taken from source review. The side-by-side capture was made later (T03, T04). |
-| P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S29 (keyboard and mouse Yes/No, Yes regression S11-S17). |
+| P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S07 and S10-S29 (27 scenarios; keyboard and mouse Yes/No, Yes regression S11-S17, stale previews S26-S27, Stop S28-S29). |
 | P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T04 captures. |
-| P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L08. |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 104 pass, 0 skip, 0 fail, 0 error (every section 10 row mapped to sandbox scenarios in [docs/verification-coverage.md](docs/verification-coverage.md); fault injection, handoff tampering and target-change scenarios F/X/E run through the sandbox CLI shim, as do H01/S07/S28/S29), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
+| P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L09 (including in-place update and `v0.1.0` rollback). |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 104 scenarios, 104 pass, 0 fail, 0 error, 0 skip (S 27, R 13, T 4, L 9, H 1, F 17, X 27, E 6; every section 10 row mapped to sandbox scenarios in [docs/verification-coverage.md](docs/verification-coverage.md); fault injection, handoff tampering and target-change scenarios F/X/E run through the sandbox CLI shim, as do H01, S07, S28 and S29). Unit suite 464 passed. `v0.1.0` tag exists. **Pending:** `bin/setup`, `bin/install` and config reload on the user's Herdr, which need the user's authorization (see Deployment state). |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 
@@ -281,7 +289,7 @@ Testing layers:
 
 [docs/verification-coverage.md](docs/verification-coverage.md) maps every row and scenario above to the real-Herdr sandbox scenarios (and unit tests) that verify it and lists what cannot be exercised against a real Herdr.
 
-Historical 225/42/8 counts are baseline only; current results are recorded separately in [docs/verification-results.md](docs/verification-results.md). Matrix scenarios not observable in Herdr 0.9.3 (notification wording) are listed as skips there.
+Historical 225/42/8 counts are baseline only; current results are recorded separately in [docs/verification-results.md](docs/verification-results.md). No scenario is skipped: the notification wording is checked through the shim log (S07) because the headless client draws no toast. The few items that cannot be exercised against a real Herdr are listed in the coverage file.
 
 ## 11. Deliverables
 
@@ -306,3 +314,7 @@ Decisions made while implementing, where the plan was silent or R1 changed the f
 - The rename title reads `rename agent`.
 - Rename shows errors on content row 4; the native overlay has no error display.
 - The keybinding description for sync is now "Sync agent names from pane names". The installer matches bindings by `type` and exact `command`, so existing bindings with the old description are kept as they are.
+- The sandbox harness routes the plugin's CLI calls through a test-only shim (`tools/herdr_shim.py`) for call logging, a rename delay and fault injection. It is never installed on a real Herdr and `src/` is unchanged.
+- The private handoff file is limited to 4 MiB and the inline handoff to 48 KiB.
+- The sandbox `next` suite uses scenario IDs with gaps (S08-S09, X12 unused); counts are by scenario run, not by ID range.
+- The version is 0.2.0 in `herdr-plugin.toml` and `pyproject.toml`; rollback tag `v0.1.0`.
