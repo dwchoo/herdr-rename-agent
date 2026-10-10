@@ -173,6 +173,15 @@ def main() -> int:
             ".git", ".venv", "__pycache__", ".pytest_cache", "graphify-out", ".graphify-cache",
             "dist", "captures", "sandbox", "sandbox-next", "next-run", "r1-live", "actual-results.json", "isolation.json",
         ))
+        # Rollback fixture for the lifecycle scenarios: the v0.1.0 tree in a separate sandbox path.
+        legacy = checkout / "legacy-v0.1.0"
+        try:
+            legacy.mkdir()
+            archive = subprocess.run(["git", "-C", str(ROOT), "archive", "--format=tar", "v0.1.0"], capture_output=True, check=True)
+            subprocess.run(["tar", "-x", "-C", str(legacy)], input=archive.stdout, check=True)
+        except (OSError, subprocess.CalledProcessError):
+            shutil.rmtree(legacy, ignore_errors=True)
+            print("Note: tag v0.1.0 not available; the rollback scenario will be skipped.", file=sys.stderr)
         system_config = Path(temporary) / "system-config"
         system_config.mkdir()
         (system_config / "passwd").write_text(f"tester:x:{os.getuid()}:{os.getgid()}:Sandbox tester:/sandbox/home:/bin/bash\n")

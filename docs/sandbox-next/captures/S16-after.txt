@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││bash-5.2$ codex --no-daemon --no-a │
+ · second-ws             ││  /status - show current session  ▕││lt-screen --sandbox read-only      │
+                         ││  configuration                   ▕││                                   │
+                         ││  /permissions - choose what Codex▕││  >_ OpenAI Codex (v0.162.1)       │
+                         ││  is allowed to do                ▕││     /workspace/agent-rename       │
+                         ││  /model - choose what model and  ▕││                                   │
+                         ││  reasoning effort to use         ▐││  To get started, describe a task  │
+                         ││  /review - review any changes and▐││  or try one of these commands:    │
+                         ││  find issues                     ▐││                                   │
+                         ││                                  ▐││  /init - create an AGENTS.md file │
+                         ││                                  ▐││  with instructions for Codex      │
+                         ││› 1uk Codex to do anything        ▐││  /status - show current session   │
+                         ││                                  ▐││  configuration                    │
+ new                 menu││  GPT-6.1-Sol default …  ⚠ 1 · f2 ▐││  /permissions - choose what Codex │
+─────────────────────────│└───────────────────────────────────┘│  is allowed to do                 │
+ agents           grouped│┌───────────────────────────────────┐│  /model - choose what model and   │
+                         ││bash-5.2$                          ││  reasoning effort to use          │
+ · agent-rename · 1      ││                                   ││  /review - review any changes and │
+   old-a                 ││                                   ││  find issues                      │
+ · agent-rename · 1      ││                                   ││                                   │
+   old-b                 ││                                   ││                                   │
+ · agent-rename · second ││                                   ││› Ask Codex to do anything         │
+   old-d                 ││                                   ││                                   │
+ · agent-rename · second ││                                   ││  GPT-6.1-Sol default …  ⚠ 1 · f2  │
+   old-e                 ││                                   ││                                   │
+ · second-ws             ││                                   ││                                   │
+   keep-f                ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

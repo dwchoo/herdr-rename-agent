@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ newer-a ──────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││                                  ▕│
+ · second-ws             ││  /status - show current session  ▕││  >_ OpenAI Codex (v0.162.1)      ▕│
+                         ││  configuration                   ▕││     /workspace/agent-rename      ▕│
+                         ││  /permissions - choose what Codex▕││                                  ▕│
+                         ││  is a┌Sync agent name──────────────────────────────────────────┐ task ▕│
+                         ││  /mod│ Sync agent names · workspace "agent-rename" · 7 panes   │ds:   ▕│
+                         ││  reas│  Tab      Pane  Agent     → Pane name Status            │      ▕│
+                         ││  /rev│  1        w1:p1 old-a     → new-a     skipped: The pa…  │d file▕│
+                         ││  find│  1        w1:p3 (unnamed)   —         skipped: no pan…  │x     ▕│
+                         ││      │  1        w1:p7 (unnamed) → new-x0    skipped: The pa…  │sion  ▕│
+                         ││      │  1        w1:p2 old-b     → new-b     synced            │      ▕│
+                         ││› 1uk │  2 second w1:p4 old-d     → new-d     skipped: The ag…  │ Codex▕│
+                         ││      │  2 second w1:p6 (unnamed)   —         skipped: no pan…  │      ▕│
+ new                 menu││  GPT-│▸ 2 second w1:p5 old-e     → new-e     synced            │ and  ▕│
+─────────────────────────│└──────│                                                         │      ▕│
+ agents           grouped│┌──────│                                                         │es and▕│
+                         ││bash-5│                                                         │      ▕│
+ · agent-rename · 1      ││      │                                                         │      ▕│
+   old-a                 ││      │ 2 second · w1:p5 · old-e → new-e · Verified after       │      ▕│
+ · agent-rename · 1      ││      │ rename.                                                 │      ▕│
+   new-b                 ││      │ 5 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
+ · agent-rename · second ││      │ 2 synced, 5 skipped                                     │ · f2 ▕│
+   renamed-d             ││      │                       [ Close ]                         │      ▕│
+ · agent-rename · second ││      │ ↑↓ PgUp/PgDn scroll · Enter/Esc: close                  │      ▕│
+   new-e                 ││      └─────────────────────────────────────────────────────────┘      ▕│
+ · second-ws             ││                                   ││                                  ▕│
+   old-f                 ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                         ││                                   ││                                  ▕│
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

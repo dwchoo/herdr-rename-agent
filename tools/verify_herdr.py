@@ -83,13 +83,17 @@ command = 'printf "New agent name: "; IFS= read -r name; if [ -n "$name" ]; then
         if not passed:
             raise AssertionError(name + ": " + details)
 
-    def start(self):
+    def launch(self):
+        """Start the Herdr client PTY (and thus the named server) without installing anything."""
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.chdir(ROOT)
             fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 32, 100, 0, 0))
             os.execvpe(self.binary, [self.binary, "--session", self.name], self.env)
         self.pump(1)
+
+    def start(self):
+        self.launch()
         self.manage("install")
         commands = tomllib.loads(self.config.read_text())["keys"]["command"]
         self.record("One-command install migrates legacy popup", {item["command"] for item in commands} == {"local.agent-rename.open", "local.agent-rename.sync"})

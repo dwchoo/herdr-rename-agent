@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌───────────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││bash-5.2$ codex --no-daemon --no-a │
+ · second-ws             ││  /status - show current session  ▕││lt-screen --sandbox read-only      │
+                         ││  configuration                   ▕││                                   │
+                         ││  /permissions - choose what Codex▕││  >_ OpenAI Codex (v0.162.1)       │
+                         ││  is a┌Sync agent name──────────────────────────────────────────┐       │
+                         ││  /mod│ Sync agent names · workspace "agent-rename" · 6 panes   │       │
+                         ││  reas│  Tab      Pane  Agent     → Pane name Status            │ task  │
+                         ││  /rev│▸ 1        w1:p1 old-a     → new-a     change            │ds:    │
+                         ││  find│  1        w1:p3 —           shell-c   no agent          │       │
+                         ││      │  1        w1:p2 keep-b      —         no pane name      │d file │
+                         ││      │  2 second w1:p4 keep-d    → Bad Label invalid name      │x      │
+                         ││› 1uk │  2 second w1:p6 (unnamed)   —         no pane name      │sion   │
+                         ││      │  2 second w1:p5 match-e   → match-e   matches           │       │
+ new                 menu││  GPT-│                                                         │ Codex │
+─────────────────────────│└──────│                                                         │       │
+ agents           grouped│┌ shell│                                                         │ and   │
+                         ││bash-5│                                                         │       │
+ · agent-rename · 1      ││      │                                                         │es and │
+   old-a                 ││      │ 1 · w1:p1 · old-a → new-a                               │       │
+ · agent-rename · 1      ││      │                                                         │       │
+   keep-b                ││      │ 1 change · 1 matches · 4 skipped · 0 conflicts/errors   │       │
+ · agent-rename · second ││      │ Yes renames 1 agent to the pane names shown.            │       │
+   keep-d                ││      │                    [ Yes ]  [ No ]                      │       │
+ · agent-rename · second ││      │ ↑↓ PgUp/PgDn scroll · ←→ select · Y/N · Esc             │ · f2  │
+   match-e               ││      └─────────────────────────────────────────────────────────┘       │
+ · second-ws             ││                                   ││                                   │
+   keep-f                ││                                   ││                                   │
+                         ││                                   ││                                   │
+                         ││                                   ││                                   │
+                        «│└───────────────────────────────────┘└───────────────────────────────────┘

@@ -1,0 +1,10 @@
+ · agent-rename   tab 1 · 1/2 │         
+ no agents                    │ switch  
+┌Rename agent──────────────────────────┐
+│Enlarge the terminal to continue. Pre │
+│ss Esc to cancel.                     │
+│                                      │
+│                                      │
+│                                      │
+└──────────────────────────────────────┘
+└──────────────────┘└──────────────────┘

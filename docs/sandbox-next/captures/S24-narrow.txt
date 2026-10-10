@@ -1,0 +1,20 @@
+ · agent-rename             tab 1 · 1/2 │         
+ no agents                              │ switch  
+┌ new-a ────────────────┐┌ new-b ────────────────┐
+│  changes and find    ▕││  current session     ▕│
+│  issues              ▕││  configuration       ▕│
+│    ┌Sync agent name───────────────────────┐   ▕│
+│    │Enlarge the terminal to continue. Pre │ is▕│
+│› 1u│ss Esc to cancel.                     │   ▕│
+│    │                                      │hat▕│
+│  GP│                                      │ng ▕│
+└────│                                      │   ▕│
+┌────│                                      │any▕│
+│bash│                                      │   ▕│
+│    │                                      │   ▕│
+│    │                                      │   ▕│
+│    │                                      │   ▕│
+│    └──────────────────────────────────────┘ny ▕│
+│                       ││                      ▕│
+│                       ││  GPT-6.1-…  ⚠ 1 · f2 ▕│
+└───────────────────────┘└───────────────────────┘

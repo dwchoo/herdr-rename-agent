@@ -1,0 +1,32 @@
+ spaces                  │   1       second    +                                                    
+                         │┌ new-a ────────────────────────────┐┌ new-b ────────────────────────────┐
+ · agent-rename          ││  with instructions for Codex     ▕││                                  ▕│
+ · second-ws             ││  /status - show current session  ▕││  >_ OpenAI Codex (v0.162.1)      ▕│
+                         ││  configuration                   ▕││     /workspace/agent-rename      ▕│
+                         ││  /permissions - choose what Codex▕││                                  ▕│
+                         ││  is a┌Sync agent name──────────────────────────────────────────┐ task ▕│
+                         ││  /mod│ Sync agent names · workspace "agent-rename" · 9 panes   │ds:   ▕│
+                         ││  reas│  Tab      Pane  Agent     → Pane name Status            │      ▕│
+                         ││  /rev│  1        w1:p1 old-a     → new-a     not attempted     │d file▕│
+                         ││  find│  1        w1:p3 (unnamed)   —         skipped: no pan…  │x     ▕│
+                         ││      │  1        w1:pD (unnamed) → new-x2    not attempted     │sion  ▕│
+                         ││      │  1        w1:pC (unnamed) → new-x1    not attempted     │      ▕│
+                         ││› 1uk │  1        w1:pB (unnamed) → new-x0    not attempted     │ Codex▕│
+                         ││      │  1        w1:p2 old-b     → new-b     not attempted     │      ▕│
+ new                 menu││  GPT-│  2 second w1:p4 old-d     → new-d     not attempted     │ and  ▕│
+─────────────────────────│└──────│  2 second w1:p6 (unnamed)   —         skipped: no pan…  │      ▕│
+ agents           grouped│┌───┐┌ │▸ 2 second w1:p5 old-e     → new-e     not attempted     │es and▕│
+                         ││bas││ │                                                         │      ▕│
+ · agent-rename · 1     ▕││-5.││ │                                                         │      ▕│
+   old-a                ▕││ash││ │ 2 second · w1:p5 · old-e → new-e · Canceled before      │      ▕│
+ · agent-rename · 1     ▕││bas││ │ this pane.                                              │      ▕│
+   codex                ▕││-5.││ │ 7 change · 0 matches · 2 skipped · 0 conflicts/errors   │      ▕│
+ · agent-rename · 1     ▕││$  ││ │ Canceled. 2 skipped, 7 not attempted                    │ · f2 ▕│
+   codex                ▕││   ││ │                       [ Close ]                         │      ▕│
+ · agent-rename · 1     ▕││   ││ │ ↑↓ PgUp/PgDn scroll · Enter/Esc: close                  │      ▕│
+   codex                ▕││   ││ └─────────────────────────────────────────────────────────┘      ▕│
+ · agent-rename · 1     ▕││   ││   ││      ▕││               ▕││                                  ▕│
+   old-b                ▕││   ││› A││› Ask ▕││› Ask Codex to ▕││                                  ▕│
+ · agent-rename · second▕││   ││   ││      ▕││               ▕││                                  ▕│
+   old-d                ▕││   ││  G││  ⚠ 1 ▕││  G…  ⚠ 1 · f2 ▕││                                  ▕│
+                        «│└───┘└───┘└───────┘└────────────────┘└───────────────────────────────────┘

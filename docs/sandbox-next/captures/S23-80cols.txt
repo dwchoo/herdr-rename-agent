@@ -1,0 +1,24 @@
+ spaces                  │   1       second    +                                
+                         │┌ new-a ──────────────────┐┌ new-b ──────────────────┐
+ · agent-rename          ││  model and reasoning   ▕││  one of these commands:▕│
+ · second-ws             ││  effort to use         ▕││                        ▕│
+                         ││  /r┌Sync agent name──────────────────────────┐    ▕│
+                         ││  ch│ Sync agent names · workspace "agent-r…  │h   ▕│
+                         ││  is│  Agent     → Pane name Status           │odex▕│
+                         ││    │▸ old-a     → new-a     change           │rent▕│
+                         ││    │  (unnamed)   —         no pane name     │ion ▕│
+                         ││› 1u│  old-b     → new-b     change           │ose ▕│
+                         ││    │  old-d     → new-d     change           │wed ▕│
+ new                 menu││  GP│  (unnamed)   —         no pane name     │    ▕│
+─────────────────────────│└────│  old-e       —         no pane name     │at  ▕│
+ agents           grouped│┌────│ 1 · w1:p1 · old-a → new-a               │g   ▕│
+                         ││bash│                                         │    ▕│
+ · agent-rename · 1     ▕││    │ 3 chg · 0 ok · 3 skip · 0 err           │ny  ▕│
+   old-a                ▕││    │ Yes renames 3 agents to the pane names  │    ▕│
+ · agent-rename · 1     ▕││    │            [ Yes ]  [ No ]              │    ▕│
+   old-b                ▕││    │ ↑↓ scroll · ←→ select · Y/N · Esc       │    ▕│
+ · agent-rename · second▕││    └─────────────────────────────────────────┘    ▕│
+   old-d                ▕││                         ││› Ask Codex to do anyth ▕│
+ · agent-rename · second▕││                         ││                        ▕│
+   old-e                ▕││                         ││  GPT-6.1-So…  ⚠ 1 · f2 ▕│
+                        «│└─────────────────────────┘└─────────────────────────┘

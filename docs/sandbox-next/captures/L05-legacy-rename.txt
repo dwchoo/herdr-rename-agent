@@ -1,0 +1,32 @@
+ spaces                  │   1      +                                                               
+                         │bash-5.2$ codex --no-daemon --no-alt-screen --sandbox read-only           
+ · agent-rename          │                                                                          
+                         │  >_ OpenAI Codex (v0.162.1)                                              
+                         │     /workspace/agent-rename                                              
+                         │                                                                          
+                         │  To get started, describe a task or try one of these commands:           
+                         │                                                                          
+                         │  /init - create an AGENTS.md file with instructions for Codex            
+                         │  /status - show current session configuration                            
+                         │  /permissions - choose what Codex is allowed to do                       
+                         │  /model ┌Rename agent──────────────────────────────────────────┐         
+                         │  /review│ Name                                                 │         
+                         │         │ alpha                                                │         
+                         │         │                                                      │         
+ new                 menu│› 1uk Cod│                                                      │         
+─────────────────────────│         │                                                      │         
+ agents           grouped│  GPT-6.1│                                                      │to view  
+                         │         │                                                      │         
+ · agent-rename          │         │                               [ Apply ]  [ Cancel ]  │         
+   alpha                 │         │                                                      │         
+                         │         └──────────────────────────────────────────────────────┘         
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                         │                                                                          
+                        «│                                                                          

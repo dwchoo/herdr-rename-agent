@@ -1,0 +1,16 @@
+ · agent-rename                       tab 1 · 1/2 │         
+ no agents                                        │ switch  
+┌ new-a ─────────────────────┐┌ new-b ─────────────────────┐
+│                           ▕││  what Codex is allowed to ▕│
+│     ┌Sync agent name───────────────────────────────┐    ▕│
+│› 1uk│Enlarge the terminal to continue. Press Esc t │    ▕│
+│     │o cancel.                                     │    ▕│
+│  GPT│                                              │    ▕│
+└─────│                                              │    ▕│
+┌─────│                                              │es  ▕│
+│bash-│                                              │    ▕│
+│     │                                              │    ▕│
+│     └──────────────────────────────────────────────┘ing ▕│
+│                            ││                           ▕│
+│                            ││  GPT-6.1-Sol d…  ⚠ 1 · f2 ▕│
+└────────────────────────────┘└────────────────────────────┘

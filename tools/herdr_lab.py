@@ -81,6 +81,7 @@ class Lab(Verification):
         self.layout: dict[str, str] = {}
         self.client_size = (100, 32)
         self.captured: list[str] = []
+        self.png_keep: set[str] = set()
         self.raw = b""
 
     def pump(self, duration=.3):
@@ -244,7 +245,10 @@ class Lab(Verification):
         return bool(self.until(lambda: (text in self.text()) == present, timeout, .05))
 
     def shot(self, name):
+        """Always a TXT capture; a PNG only for names listed in ``png_keep`` (key UI states)."""
         self.capture(name)
+        if name not in self.png_keep:
+            (self.destination / f"{name}.png").unlink(missing_ok=True)
         self.captured.append(name)
 
     # ---- popups ------------------------------------------------------------
@@ -292,6 +296,14 @@ class Lab(Verification):
         """Close any popup left open after an action (Close button / Esc)."""
         self.until(lambda: not self.popup_open(), 1.0)
         self.close_popups()
+
+    def manage_at(self, root, operation, *arguments, expected=True):
+        """Run ``<root>/bin/<operation>`` against this session; returns (rc, stdout, stderr)."""
+        result = subprocess.run([str(Path(root) / "bin" / operation), "--session", self.name, *arguments],
+                                env=self.env, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=40)
+        if expected and result.returncode:
+            raise RuntimeError(f"{operation}: {result.stdout} {result.stderr}")
+        return result.returncode, result.stdout, result.stderr
 
     def set_size(self, cols, rows):
         self.resize(cols, rows)

@@ -1,0 +1,40 @@
+ spaces                  │   1       second    +                                                                        
+                         │┌ new-a ──────────────────────────────────────┐┌ new-b ──────────────────────────────────────┐
+ · agent-rename          ││  To get started, describe a task or try one▕││                                            ▕│
+ · second-ws             ││  of these commands:                        ▕││  >_ OpenAI Codex (v0.162.1)                ▕│
+                         ││                                            ▕││     /workspace/agent-rename                ▕│
+                         ││  /init - create an AGENTS.md file with     ▕││                                            ▕│
+                         ││  instructions for Codex                    ▐││  To get started, describe a task or try one▕│
+                         ││  /statu┌Sync agent name──────────────────────────────────────────────────────────┐        ▕│
+                         ││  config│ Sync agent names · workspace "agent-rename" · 6 panes                   │        ▕│
+                         ││  /permi│  Tab      Pane  Agent     → Pane name Status                            │ith     ▕│
+                         ││  allowe│▸ 1        w1:p1 old-a     → new-a     change                            │        ▕│
+                         ││  /model│  1        w1:p3 (unnamed)   —         no pane name                      │        ▕│
+                         ││  effort│  1        w1:p2 old-b     → new-b     change                            │        ▕│
+                         ││  /revie│  2 second w1:p4 old-d     → new-d     change                            │s       ▕│
+                         ││  issues│  2 second w1:p6 (unnamed)   —         no pane name                      │        ▕│
+                         ││        │  2 second w1:p5 old-e       —         no pane name                      │soning  ▕│
+                         ││        │                                                                         │        ▕│
+                         ││› Ask Co│                                                                         │ind     ▕│
+                         ││        │                                                                         │        ▕│
+ new                 menu││  GPT-6.│                                                                         │        ▕│
+─────────────────────────│└────────│                                                                         │        ▕│
+ agents           grouped│┌────────│                                                                         │        ▕│
+                         ││bash-5.2│                                                                         │        ▕│
+ · agent-rename · 1      ││        │                                                                         │ 1 · f2 ▕│
+   old-a                 ││        │                                                                         │        ▕│
+ · agent-rename · 1      ││        │                                                                         │        ▕│
+   old-b                 ││        │                                                                         │        ▕│
+ · agent-rename · second ││        │ 1 · w1:p1 · old-a → new-a                                               │        ▕│
+   old-d                 ││        │                                                                         │        ▕│
+ · agent-rename · second ││        │ 3 change · 0 matches · 3 skipped · 0 conflicts/errors                   │        ▕│
+   old-e                 ││        │ Yes renames 3 agents to the pane names shown.                           │        ▕│
+ · second-ws             ││        │                            [ Yes ]  [ No ]                              │        ▕│
+   keep-f                ││        │ ↑↓ PgUp/PgDn scroll · ←→/Tab select · Y/N · Enter · Esc                 │        ▕│
+                         ││        └─────────────────────────────────────────────────────────────────────────┘        ▕│
+                         ││                                             ││                                            ▕│
+                         ││                                             ││                                            ▕│
+                         ││                                             ││                                            ▕│
+                         ││                                             ││                                            ▕│
+                         ││                                             ││                                            ▕│
+                        «│└─────────────────────────────────────────────┘└─────────────────────────────────────────────┘

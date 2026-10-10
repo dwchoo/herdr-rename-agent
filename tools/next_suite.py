@@ -17,17 +17,24 @@ from __future__ import annotations
 from collections import namedtuple
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import signal
 import time
+import tomllib
 import traceback
 
-from herdr_lab import Lab, PALETTES
+from herdr_lab import Lab, PALETTES, find
 
 Scenario = namedtuple("Scenario", "id title theme size spec fn")
 SCENARIOS: list[Scenario] = []
 AGENTS = ("a", "b", "d", "e", "f")
 SCENARIO_TIMEOUT = 75
+TIMEOUTS = {"S28": 300, "S29": 150, "S26": 120}
+LIFECYCLE = "lifecycle"  # pseudo-theme: these scenarios share one fresh, un-installed session and run in order
+# Key UI states that also get a PNG (everything else is TXT only).
+PNG_KEEP = {"T01-rename", "T01-sync", "T02-rename", "T02-sync", "R01-open", "S10-dialog", "S27-running", "S20-after",
+            "S06-dialog", "S22-small", "R12-small", "S23-80cols", "R13-resized", "S25-done", "S28-stop-0ms"}
 
 
 def base(**over):
@@ -467,6 +474,453 @@ def r12(lab):
     assert_unchanged(lab, before, "small terminal")
 
 
+# ---- sync: narrow clients, resize, stale preview, cancel -----------------------------------
+def frame_text(lab):
+    frame = lab.frame()
+    return "\n".join(lab.lines()[frame.y:frame.y + frame.height]) if frame else lab.text()
+
+
+@scenario("S23", "Sync popup at an 80-column client lays out the table with visible Yes/No",
+          spec=CHANGE_AB_D, size=(80, 24))
+def s23(lab):
+    before = lab.fingerprint()
+    open_sync(lab)
+    lab.shot("S23-80cols")
+    ok(lab.has("Yes") and lab.has("No"), "Yes/No not visible at 80 columns\n" + lab.text())
+    ok(not lab.has("Enlarge the terminal"), "resize message shown at 80x24 although the popup has room\n" + lab.text())
+    lab.keys("\x1b", .6)
+    ok(lab.until(lambda: not lab.popup_open(), 3), "Esc did not close the popup")
+    assert_unchanged(lab, before, "cancel at 80 columns")
+
+
+@scenario("S24", "Sync popup at a narrow client (50 columns) shows the resize message; Y/Enter ignored; Esc cancels",
+          spec=CHANGE_AB_D, size=(50, 20))
+def s24(lab):
+    before = lab.fingerprint()
+    open_sync(lab)
+    lab.shot("S24-narrow")
+    ok(lab.has("Enlarge the terminal"), "no resize message in a 50-column client\n" + lab.text())
+    ok(not lab.has("[ Yes ]"), "Yes button offered although the dialog does not fit\n" + lab.text())
+    lab.keys("y", .6)
+    lab.keys("\r", .6)
+    lab.pump(.8)
+    assert_unchanged(lab, before, "Y/Enter while the dialog is too small")
+    ok(lab.popup_open(), "popup closed on Y/Enter although it only shows a resize message")
+    lab.keys("\x1b", .6)
+    ok(lab.until(lambda: not lab.popup_open(), 3), "Esc did not close the popup")
+    assert_unchanged(lab, before, "Esc in a narrow client")
+
+
+@scenario("S25", "Resize while the sync popup is open: re-layout, controls visible, Yes still applies",
+          spec=CHANGE_AB_D, size=(80, 24))
+def s25(lab):
+    open_sync(lab)
+    ok(lab.has("Yes") and lab.has("No"), "Yes/No missing before resize\n" + lab.text())
+    lab.set_size(120, 40)
+    lab.pump(.8)
+    lab.shot("S25-large")
+    ok(lab.popup_open(), "popup closed by a resize to a larger client\n" + lab.text())
+    ok(lab.has("[ Yes ]") and lab.has("[ No ]") and lab.has("Sync agent names"), "dialog not re-laid out after growing\n" + lab.text())
+    lab.set_size(50, 20)
+    lab.pump(.8)
+    ok(lab.popup_open(), "popup closed by a resize to a narrow client\n" + lab.text())
+    ok(lab.has("Enlarge the terminal"), "no resize message after shrinking\n" + lab.text())
+    lab.set_size(100, 32)
+    lab.pump(.8)
+    lab.shot("S25-done")
+    ok(lab.popup_open() and lab.has("[ Yes ]") and lab.has("[ No ]"), "controls not restored after growing again\n" + lab.text())
+    lab.keys("y", .5)
+    ok(settle_after_apply(lab, CHANGE_EXPECT), f"Yes after resizes did not apply: {lab.names()}\n{lab.text()}")
+
+
+def scan_rows(lab, count):
+    """Popup text while the cursor visits every row (the detail line shows the full reason)."""
+    lab.keys("\x1b[H", .2)
+    seen = [frame_text(lab)]
+    for _ in range(count + 1):
+        lab.keys("\x1b[B", .15)
+        seen.append(frame_text(lab))
+    return "\n".join(seen)
+
+
+def with_extra_agents(lab, count, fn):
+    """Create ``count`` temporary eligible panes next to c (agent old-x<i>, label new-x<i>); always closed again."""
+    extra = []
+    try:
+        for index in range(count):
+            pane = find(lab.run_cli("pane", "split", lab.layout["c"], "--direction", "right", "--no-focus")["json"], "pane_id")
+            extra.append(pane)
+            lab.start_agent(pane, f"old-x{index}")
+            lab.run_cli("pane", "rename", pane, f"new-x{index}")
+        lab.pump(.5)
+        return fn(extra)
+    finally:
+        for pane in extra:
+            lab.run_cli("pane", "close", pane)
+        lab.pump(.5)
+
+
+STALE = base(a=("new-a", "old-a"), b=("new-b", "old-b"), d=("new-d", "old-d"), e=("new-e", "old-e"))
+
+
+@scenario("S26", "Stale preview: changed label, closed pane and renamed agent are skipped with reasons; others sync",
+          spec=STALE)
+def s26(lab):
+    def body(extra):
+        open_sync(lab)
+        lab.shot("S26-dialog")
+        ok(lab.has("new-x0"), "extra pane missing from the preview\n" + lab.text())
+        ok(lab.run_cli("pane", "rename", lab.layout["a"], "newer-a")["rc"] == 0, "label change failed")
+        ok(lab.run_cli("pane", "close", extra[0])["rc"] == 0, "pane close failed")
+        ok(lab.run_cli("agent", "rename", lab.layout["d"], "renamed-d")["rc"] == 0, "agent rename failed")
+        lab.pump(.6)
+        if not lab.popup_open():
+            raise Skip("Herdr closed the popup when the pane was closed; staleness cannot be exercised")
+        lab.keys("y", .5)
+        done = lab.until(lambda: lab.agent_name("b") == "new-b" and lab.agent_name("e") == "new-e" and lab.has("[ Close ]"), 12)
+        lab.pump(.5)
+        lab.shot("S26-after")
+        text = scan_rows(lab, 5)
+        lab.dismiss()
+        names = lab.names()
+        ok(done, f"independent rows b/e were not synced; names {names}\n{text}")
+        ok(names["a"] == "old-a", f"a was written ({names['a']!r}) although its label changed")
+        ok(names["d"] == "renamed-d", f"d was overwritten ({names['d']!r}) although its agent was renamed")
+        ok("newer-a" not in {a.get("name") for a in lab.agents()}, "a write used the new label")
+        (lab.destination / "S26-reasons.txt").write_text(text + "\n")
+        # The detail line wraps inside the popup, so match short fragments of each reason.
+        for reason in ("pane name has changed", "pane is no longer", "agent name has"):
+            ok(reason in text, f"skip reason {reason!r} not shown (see S26-reasons.txt)\n{text[-1500:]}")
+        ok("5 skipped" in text and "2 synced" in text, f"summary should read 2 synced, 5 skipped (3 stale + 2 without a pane name)\n{text}")
+    with_extra_agents(lab, 1, body)
+
+
+@scenario("S27", "Label cleared after the preview opened: the row is skipped, no write with the old label",
+          spec=base(a=("new-a", "old-a"), b=("new-b", "old-b")))
+def s27(lab):
+    open_sync(lab)
+    ok(lab.run_cli("pane", "rename", lab.layout["a"], "--clear")["rc"] == 0, "label clear failed")
+    lab.pump(.5)
+    if not lab.popup_open():
+        raise Skip("Herdr closed the popup after the label change")
+    lab.keys("y", .5)
+    ok(lab.until(lambda: lab.agent_name("b") == "new-b" and lab.has("[ Close ]"), 10), f"b not synced: {lab.names()}\n{lab.text()}")
+    lab.pump(.4)
+    lab.shot("S27-after")
+    text = scan_rows(lab, 5)
+    lab.dismiss()
+    ok(lab.agent_name("a") == "old-a", f"a was written after its label was cleared: {lab.agent_name('a')!r}")
+    ok("pane name was removed" in text, f"skip reason missing\n{text}")
+
+
+S28_SPEC = base(a=("new-a", "old-a"), b=("new-b", "old-b"), d=("new-d", "old-d"), e=("new-e", "old-e"))
+
+
+def stop_attempt(lab, extra, delay):
+    """Yes, then Ctrl+C (Stop; Herdr holds a lone Esc for >170 ms) ``delay`` seconds later (same write when 0). Returns (synced, not_attempted, text, names)."""
+    lab.reset(S28_SPEC)
+    for pane in extra:
+        lab.run_cli("agent", "rename", pane, "--clear")
+    open_sync(lab)
+    ok(lab.has("[ Yes ]"), "confirm dialog missing\n" + lab.text())
+    if delay == 0:
+        os.write(lab.fd, b"y\x03")
+    else:
+        os.write(lab.fd, b"y")
+        time.sleep(delay)
+        os.write(lab.fd, b"\x03")
+    lab.until(lambda: not lab.popup_open() or lab.has("[ Close ]"), 15)
+    lab.pump(.3)
+    text = frame_text(lab) if lab.popup_open() else ""
+    lab.shot(f"S28-stop-{int(delay * 1000)}ms")
+    lab.dismiss()
+    targets = {lab.layout[k]: f"new-{k}" for k in ("a", "b", "d", "e")}
+    targets.update({pane: f"new-x{i}" for i, pane in enumerate(extra)})
+    current = {a["pane_id"]: a.get("name") for a in lab.agents()}
+    synced = [p for p, name in targets.items() if current.get(p) == name]
+    untouched = [p for p, name in targets.items() if current.get(p) in (None, "") or str(current.get(p)).startswith("old-")]
+    ok(len(synced) + len(untouched) == len(targets), f"a row is neither synced nor untouched after Stop: {current}\n{text}")
+    ok(lab.agent_name("f") == "old-f", "control agent in the other workspace changed")
+    ok("failed" not in text and "uncertain" not in text, "Stop produced failed/uncertain rows\n" + text)
+    return len(synced), len(untouched), text, current
+
+
+@scenario("S28", "Cancel during application: Stop leaves later rows not attempted and the in-flight row reconciled",
+          spec=S28_SPEC)
+def s28(lab):
+    seen = {}
+
+    def body(extra):
+        total = 4 + len(extra)
+        for delay in (.01, .02, .03, .045, .06, .08, .11, .15):
+            synced, untouched, text, _ = stop_attempt(lab, extra, delay)
+            seen[delay] = (synced, untouched)
+            if 0 < synced < total:
+                ok(untouched >= 1 and "not attempted" in text and "Canceled" in text,
+                   f"partial batch ({synced} synced) but the summary lacks 'Canceled'/'not attempted'\n{text}")
+                return
+        raise Skip("rows complete in about 20 ms each, so a Stop could not be placed reliably inside the batch "
+                   f"(delay -> (synced, untouched): {seen}); the Stop-before-first-row latch is covered by S29")
+    with_extra_agents(lab, 3, body)
+
+
+@scenario("S29", "Stop requested together with Yes: nothing half-applied, canceled rows reported not attempted",
+          spec=S28_SPEC)
+def s29(lab):
+    def body(extra):
+        total = 4 + len(extra)
+        synced, untouched, text, _ = stop_attempt(lab, extra, 0)
+        ok(synced + untouched == total, "rows unaccounted for")
+        if untouched:
+            ok("Canceled" in text and "not attempted" in text, f"summary lacks 'Canceled'/'not attempted'\n{text}")
+        else:
+            raise Skip("Ctrl+C reached the dialog only after the batch had finished; the latch could not be observed")
+        ok(synced == 0, f"{synced} rows were applied although Stop arrived in the same key batch as Yes")
+    with_extra_agents(lab, 3, body)
+
+
+@scenario("R13", "Resize while the rename popup is open: input preserved, buttons visible, save still works", spec=ONE)
+def r13(lab):
+    open_rename(lab)
+    retype(lab, "resized-name")
+    for cols, rows in ((140, 45), (70, 20), (100, 32)):
+        lab.set_size(cols, rows)
+        lab.pump(.8)
+        ok(lab.popup_open(), f"popup closed by a resize to {cols}x{rows}\n" + lab.text())
+        body = frame_text(lab)
+        ok("resized-name" in body, f"typed input lost after resizing to {cols}x{rows}\n" + lab.text())
+        ok("save" in body and "clear" in body and "cancel" in body, f"buttons not visible at {cols}x{rows}\n" + lab.text())
+    lab.shot("R13-resized")
+    lab.set_size(45, 12)
+    lab.pump(.8)
+    lab.shot("R13-narrow")
+    small = lab.popup_open() and "Enlarge the terminal" in frame_text(lab)
+    lab.set_size(100, 32)
+    lab.pump(.8)
+    ok(lab.popup_open(), "popup lost after shrinking and growing\n" + lab.text())
+    ok("resized-name" in frame_text(lab) and "save" in frame_text(lab), "input or buttons lost after the shrink/grow cycle\n" + lab.text())
+    lab.keys("\r", .8)
+    ok(lab.until(lambda: not lab.popup_open(), 4), "Enter did not close the popup")
+    assert_names(lab, {"a": "resized-name"}, "save after resizing")
+
+
+# ---- installer lifecycle on the current runtime (own un-installed session, run in order) -----
+PLUGIN = "local.agent-rename"
+OWNED = {PLUGIN + ".open", PLUGIN + ".sync"}
+LEGACY_TAG_DIR = "legacy-v0.1.0"
+LIFE: dict = {}
+USER_EDIT = """
+# User change made after installation; preserve this comment.
+[ui]
+sidebar_width = 31
+[[keys.command]]
+key = "prefix+alt+y"
+type = "shell"
+description = "User binding after installation"
+command = "true"
+"""
+BLOCKING_BINDING = """
+[[keys.command]]
+key = "prefix+shift+a"
+type = "shell"
+description = "Newer user binding on a displaced shortcut"
+command = "true"
+"""
+
+
+def lifecycle(id, title):
+    return scenario(id, title, theme=LIFECYCLE, spec={})
+
+
+def user_commands(lab):
+    return tomllib.loads(lab.config.read_text()).get("keys", {}).get("command", [])
+
+
+def owned_bindings(lab):
+    return sorted((c["key"], c["type"], c["command"]) for c in user_commands(lab) if c.get("command") in OWNED)
+
+
+def records(lab):
+    return sorted((lab.base / "state/herdr/plugins" / PLUGIN / "installations").glob("*.json"))
+
+
+def plugins(lab):
+    return lab.cli("plugin", "list")["result"]["plugins"]
+
+
+def plugin_root(lab):
+    found = [p for p in plugins(lab) if p["plugin_id"] == PLUGIN]
+    return Path(found[0]["plugin_root"]).resolve() if found else None
+
+
+def ensure_agent(lab):
+    """Dedicated idle agent in the session's only pane, with an explicit pane name (for sync)."""
+    if lab.run_cli("agent", "get", lab.pane)["rc"] != 0:
+        lab.start_agent(lab.pane, "alpha")
+    lab.run_cli("pane", "rename", lab.pane, "backend-api")
+
+
+def installed_state(lab):
+    return {"config": lab.config.read_bytes(), "records": [r.read_bytes() for r in records(lab)], "owned": owned_bindings(lab)}
+
+
+@lifecycle("L01", "Installer dry-run on a fresh sandbox config previews the edit and changes nothing")
+def l01(lab):
+    LIFE["original"] = lab.config.read_bytes()
+    ok(not records(lab) and not plugins(lab), "fixture is not a fresh, un-installed session")
+    rc, out, err = lab.manage_at(lab.root, "install", "--dry-run")
+    ok("prefix+shift+a" in out and "prefix+shift+s" in out and "Dry run" in out, f"dry-run output incomplete:\n{out}{err}")
+    ok(lab.config.read_bytes() == LIFE["original"] and not records(lab) and not plugins(lab), "dry-run changed config, record or registry")
+
+
+@lifecycle("L02", "Fresh bin/install: legacy popup migrated, two plugin_action bindings, registered from this checkout")
+def l02(lab):
+    lab.manage("install")
+    commands = user_commands(lab)
+    ok({c["command"] for c in commands} == OWNED and all(c["type"] == "plugin_action" for c in commands),
+       f"unexpected bindings after install: {commands}")
+    ok(sorted(c["key"] for c in commands) == ["prefix+shift+a", "prefix+shift+s"], f"unexpected keys: {commands}")
+    ok(plugin_root(lab) == lab.root.resolve(), f"plugin not registered from this checkout: {plugins(lab)}")
+    ok(all(p["enabled"] for p in plugins(lab)), "plugin not enabled")
+    found = records(lab)
+    ok(len(found) == 1, f"expected one recovery record, found {found}")
+    record = json.loads(found[0].read_text())
+    ok(len(record["displaced"]) == 1 and "HERDR_ACTIVE_PANE_ID" in record["displaced"][0]["table"],
+       "legacy rename popup was not saved in the recovery record")
+    ok((found[0].stat().st_mode & 0o777) == 0o600, "recovery record is not private (0600)")
+    actions = lab.cli("plugin", "action", "list", "--plugin", PLUGIN)["result"]["actions"]
+    ok(len(actions) == 2, f"expected 2 actions, found {actions}")
+    LIFE["installed"] = installed_state(lab)
+
+
+@lifecycle("L03", "Both shortcuts open the new dialogs after install; cancelling writes nothing")
+def l03(lab):
+    ensure_agent(lab)
+    before = lab.fingerprint()
+    frame = lab.open_popup("A")
+    lab.shot("L03-rename")
+    ok(frame and lab.has("alpha"), "Ctrl+B Shift+A did not open the rename dialog\n" + lab.text())
+    lab.keys("\x1b", .6)
+    ok(lab.until(lambda: not lab.popup_open(), 3), "Esc did not close rename")
+    frame = lab.open_popup("S")
+    lab.shot("L03-sync")
+    ok(frame and lab.has("[ Yes ]") and lab.has("[ No ]") and lab.has("backend-api"), "Ctrl+B Shift+S did not open the sync dialog\n" + lab.text())
+    lab.keys("n", .6)
+    ok(lab.until(lambda: not lab.popup_open(), 3), "N did not close sync")
+    ok(lab.fingerprint() == before, "opening and cancelling the dialogs changed agent state")
+
+
+@lifecycle("L04", "Repeated install keeps one binding per action, the same recovery record and one registration")
+def l04(lab):
+    state = LIFE["installed"]
+    lab.manage("install")
+    ok(lab.config.read_bytes() == state["config"], "repeated install changed the config")
+    ok([r.read_bytes() for r in records(lab)] == state["records"], "repeated install changed the recovery record")
+    ok(owned_bindings(lab) == state["owned"] and len(owned_bindings(lab)) == 2, "duplicate or missing bindings")
+    ok(len([p for p in plugins(lab) if p["plugin_id"] == PLUGIN]) == 1, "duplicate registration")
+    rc, out, err = lab.manage_at(lab.root, "uninstall", "--dry-run")
+    ok(lab.config.read_bytes() == state["config"] and plugin_root(lab) == lab.root.resolve() and "Dry run" in out,
+       "uninstall --dry-run changed state")
+
+
+@lifecycle("L05", "Rollback: v0.1.0 is refused over a registration from another checkout; new -> v0.1.0 -> new keeps the bindings")
+def l05(lab):
+    legacy = lab.root / LEGACY_TAG_DIR
+    if not (legacy / "bin/install").exists():
+        raise Skip("tag v0.1.0 could not be exported into the sandbox (no git or tag)")
+    if not (legacy / ".venv").exists():
+        os.symlink(lab.root / ".venv", legacy / ".venv")
+    state = installed_state(lab)
+    rc, out, err = lab.manage_at(legacy, "install", expected=False)
+    ok(rc != 0 and "another checkout" in err, f"v0.1.0 install over the new registration should be refused: rc={rc}\n{out}{err}")
+    ok(lab.config.read_bytes() == state["config"] and plugin_root(lab) == lab.root.resolve(), "refused install changed state")
+    lab.manage("uninstall")
+    ok(not owned_bindings(lab) and plugin_root(lab) is None, "uninstall of the new runtime left bindings or registration")
+    lab.manage_at(legacy, "install")
+    ok(plugin_root(lab) == legacy.resolve(), f"v0.1.0 not registered: {plugins(lab)}")
+    ok(owned_bindings(lab) == state["owned"], f"v0.1.0 bindings differ: {owned_bindings(lab)} vs {state['owned']}")
+    ensure_agent(lab)
+    frame = lab.open_popup("A")
+    lab.shot("L05-legacy-rename")
+    ok(frame and lab.has("alpha"), "shortcut does not open the v0.1.0 rename dialog\n" + lab.text())
+    lab.keys("\x1b", .6)
+    ok(lab.until(lambda: not lab.popup_open(), 3), "Esc did not close the v0.1.0 dialog")
+    lab.manage_at(legacy, "uninstall")
+    ok(not owned_bindings(lab) and plugin_root(lab) is None, "v0.1.0 uninstall left bindings or registration")
+    lab.manage("install")
+    ok(plugin_root(lab) == lab.root.resolve(), "new runtime not registered after rollback cycle")
+    ok(owned_bindings(lab) == state["owned"], "bindings changed across the rollback cycle")
+    ok(lab.config.read_bytes() == state["config"], "config bytes differ after the rollback cycle")
+    ok([r.read_bytes() for r in records(lab)] == state["records"], "recovery record differs after the rollback cycle")
+    frame = lab.open_popup("S")
+    ok(frame and lab.has("[ Yes ]"), "new sync dialog not available after the cycle\n" + lab.text())
+    lab.keys("n", .6)
+    lab.close_popups()
+
+
+@lifecycle("L06", "Later user edits survive bin/uninstall; only plugin bindings go and the legacy popup returns")
+def l06(lab):
+    lab.config.write_text(lab.config.read_text() + USER_EDIT)
+    lab.manage("uninstall")
+    text = lab.config.read_text()
+    restored = tomllib.loads(text)
+    bindings = restored["keys"]["command"]
+    ok(restored["ui"]["sidebar_width"] == 31 and "preserve this comment" in text, "later setting or comment was lost")
+    ok(any(b["command"] == "true" for b in bindings), "later user binding was removed")
+    ok(not any(b["command"] in OWNED for b in bindings), "plugin bindings remain")
+    ok(any(b["type"] == "popup" and "HERDR_ACTIVE_PANE_ID" in b["command"] for b in bindings) and len(bindings) == 2,
+       f"only the displaced legacy popup should be restored: {bindings}")
+    ok(not plugins(lab) and not records(lab), "registration or resolved recovery record remains")
+    lab.keys("\x02", .15)
+    os.write(lab.fd, b"S")
+    lab.pump(.8)
+    ok(not lab.popup_open(), "plugin shortcut still opens a popup after uninstall\n" + lab.text())
+    LIFE["uninstalled"] = lab.config.read_bytes()
+
+
+@lifecycle("L07", "Repeated uninstall is harmless")
+def l07(lab):
+    rc, out, err = lab.manage_at(lab.root, "uninstall", expected=False)
+    ok(rc == 0 and lab.config.read_bytes() == LIFE["uninstalled"], f"second uninstall changed the config or failed: {out}{err}")
+    ok(not plugins(lab) and not records(lab), "registry or record changed")
+
+
+@lifecycle("L08", "Existing recovery record is retained when a newer user binding blocks restoration")
+def l08(lab):
+    lab.manage("install")
+    ok(len(records(lab)) == 1, "no recovery record after reinstall")
+    lab.config.write_text(lab.config.read_text() + BLOCKING_BINDING)
+    rc, out, err = lab.manage_at(lab.root, "uninstall", expected=False)
+    ok(rc == 0, f"uninstall failed: {out}{err}")
+    ok("Recovery record" in out, f"uninstall did not mention the retained record:\n{out}")
+    found = records(lab)
+    ok(len(found) == 1 and "HERDR_ACTIVE_PANE_ID" in found[0].read_text(), "recovery record not retained with the blocked legacy binding")
+    commands = user_commands(lab)
+    ok(not any(c["command"] in OWNED for c in commands), "plugin bindings remain")
+    ok(sum(c["key"] == "prefix+shift+a" for c in commands) == 1 and any(c.get("description", "").startswith("Newer user") for c in commands),
+       f"newer user binding was replaced or duplicated: {commands}")
+    ok(not plugins(lab), "plugin still registered")
+
+
+class LifecycleLab(Lab):
+    """A session with the legacy popup binding and nothing installed (the installer is the subject)."""
+    root = Path(__file__).resolve().parents[1]
+
+    def start(self):
+        self.launch()
+        self.pane = self.cli("pane", "list")["result"]["panes"][0]["pane_id"]
+        self.layout = {"a": self.pane}
+        self.agent_keys = ()
+        self.pump(.3)
+
+    def reset(self, spec=None, size=(100, 32)):
+        self.close_popups()
+        self.pump(.3)
+
+    def build_layout(self):
+        pass
+
+
 # ---- themes ------------------------------------------------------------------------------
 def theme_checks(lab, name):
     palette = PALETTES[name]
@@ -515,7 +969,9 @@ def run_suite(out: Path, codex_arguments, only: list[str] | None = None) -> int:
     signal.signal(signal.SIGALRM, _alarm)
     for theme in dict.fromkeys(s.theme for s in selected):
         group = [s for s in selected if s.theme == theme]
-        lab = Lab(captures, theme=None if theme == "catppuccin" else theme, codex_arguments=codex_arguments)
+        kind = LifecycleLab if theme == LIFECYCLE else Lab
+        lab = kind(captures, theme=None if theme in ("catppuccin", LIFECYCLE) else theme, codex_arguments=codex_arguments)
+        lab.png_keep = set(PNG_KEEP)
         try:
             try:
                 lab.start()
@@ -532,7 +988,7 @@ def run_suite(out: Path, codex_arguments, only: list[str] | None = None) -> int:
                 started = time.monotonic()
                 outcome, details = "pass", ""
                 try:
-                    signal.alarm(SCENARIO_TIMEOUT)
+                    signal.alarm(TIMEOUTS.get(s.id, SCENARIO_TIMEOUT))
                     lab.reset(s.spec, s.size)
                     s.fn(lab)
                 except Skip as error:
