@@ -57,6 +57,15 @@ The real native Codex executable runs with `--no-daemon`, a fresh `CODEX_HOME`, 
 
 Evidence goes to `docs/sandbox/`: actual captures, scenario results, isolation checks, and the run exit code. The original runtime fixture and existing host-session evidence remain unchanged. The wrapper has a four-minute timeout; exiting the PID namespace terminates its test processes, and the temporary checkout is removed. This is a local integration-test sandbox sharing the host kernel and read-only system runtimes, rather than a VM or a certification of malicious-code containment. It does not add an atomic precondition to Herdr's rename API.
 
+#### Next suite (PLAN section 10 scenarios)
+
+```bash
+.venv/bin/python tools/verify_sandbox.py --run --suite next [--only S1,R03,T]   # docs/sandbox-next/
+.venv/bin/python tools/verify_sandbox.py --run --suite all                      # old suite + next suite
+```
+
+`--suite old` (the default) keeps the original scenarios and installer lifecycle and writes `docs/sandbox/`; it asserts the pre-revision UI (single-pane sync), so it is only meaningful against the `d5cd79f` runtime. `--suite next` writes `docs/sandbox-next/` (`actual-results.json`, `captures/*.txt|png`, `isolation.json`, `run.json`). Scenarios are defined in `tools/next_suite.py` on top of `tools/herdr_lab.py` (layout, agents, popup frame detection by title, keys, bracketed paste, SGR mouse at popup-relative or client coordinates). Each scenario resets labels/names, then reports `pass`, `fail` (planned behavior not observed), `error` (harness/exception) or `skip` (not observable); failures also save the screen and the plugin log. `--only` takes ID prefixes. Fixture: workspace 1 tab 1 has agents a, b and agent-less c; tab 2 has agents d, e and agent-less g; workspace 2 has control agent f. Limits: Herdr 0.9.3's headless client draws no notification toast, so notification wording is unobservable; Herdr closes a popup when the workspace focus changes; repeated-batch checks compare agent `revision` deltas rather than counting API writes.
+
 Use a separate test environment and a dedicated pane/agent; do not rename the active development agent. `HERDR_CONFIG_PATH` isolates only the config file. Herdr 0.9.3's plugin registry and session directories use `XDG_CONFIG_HOME`, and plugin state uses `XDG_STATE_HOME`. Set both to fresh test directories, choose a named test session, and retain the normal HOME value. [Config/state path implementation](https://github.com/herdrdev/herdr/blob/v0.9.3/src/config/io.rs#L30)
 
 An example environment for a manual test:

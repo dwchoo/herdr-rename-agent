@@ -64,6 +64,7 @@ command = 'printf "New agent name: "; IFS= read -r name; if [ -n "$name" ]; then
         self.stream = pyte.Stream(self.screen)
         self.pid = self.fd = None
         self.results = []
+        self.default_background, self.default_foreground = "#1e1e2e", "#cdd6f4"  # PNG fallback colors
 
     def cli(self, *argv, expected=True):
         if argv == ("plugin", "list"):
@@ -147,12 +148,12 @@ command = 'printf "New agent name: "; IFS= read -r name; if [ -n "$name" ]; then
         (self.destination / f"{name}.txt").write_text(self.text() + "\n")
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 14)
         cell_w, cell_h = 9, 18
-        img = Image.new("RGB", (self.screen.columns * cell_w, self.screen.lines * cell_h), "#1e1e2e")
+        img = Image.new("RGB", (self.screen.columns * cell_w, self.screen.lines * cell_h), self.default_background)
         draw = ImageDraw.Draw(img)
         colors = {"default": "#cdd6f4", "black": "#45475a", "red": "#f38ba8", "green": "#a6e3a1", "brown": "#f9e2af", "blue": "#89b4fa", "magenta": "#cba6f7", "cyan": "#94e2d5", "white": "#cdd6f4"}
         def color(value, background=False):
             if value == "default":
-                return "#1e1e2e" if background else "#cdd6f4"
+                return self.default_background if background else self.default_foreground
             return colors.get(value, "#" + value if len(value) == 6 else "#cdd6f4")
         for row, line in self.screen.buffer.items():
             for col, char in line.items():

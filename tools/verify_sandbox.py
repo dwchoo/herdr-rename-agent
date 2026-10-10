@@ -21,6 +21,8 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SANDBOX_ROOT = Path("/workspace/agent-rename")
+NEXT_RUN = "docs/next-run"  # in-sandbox evidence directory for the new suite
+TIMEOUTS = {"old": 240, "next": 1500, "all": 1800}
 
 
 def native_codex(value: str | None) -> Path:
@@ -43,8 +45,8 @@ def native_codex(value: str | None) -> Path:
     return matches[0].resolve()
 
 
-def inside() -> None:
-    """Check isolation before starting any Herdr process, then run the same E2E."""
+def inside(suite: str = "old", only: list[str] | None = None) -> None:
+    """Check isolation before starting any Herdr process, then run the selected E2E suite(s)."""
     home = Path(os.environ["HOME"])
     denied = json.loads(os.environ["HERDR_RENAME_SANDBOX_DENIED_PATHS"])
     host_namespaces = json.loads(os.environ["HERDR_RENAME_SANDBOX_HOST_NAMESPACES"])
@@ -91,6 +93,8 @@ def inside() -> None:
         "scope": "Local PTY/process/API behavior with a test-only no-auth provider; remote model operation is not exercised",
     }
     (ROOT / "docs/isolation.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    (ROOT / NEXT_RUN).mkdir(parents=True, exist_ok=True)
+    (ROOT / NEXT_RUN / "isolation.json").write_text(json.dumps(evidence, indent=2) + "\n")
     if not all(checks.values()):
         raise RuntimeError(f"Sandbox isolation checks failed: {checks}")
     print("Passed: sandbox isolation checks", flush=True)
@@ -107,24 +111,44 @@ base_url = "http://127.0.0.1:9/v1"
 wire_api = "responses"
 requires_openai_auth = false
 ''')
-    from verify_herdr import Verification
-    verification = Verification(ROOT / "docs/captures", codex_arguments=("--no-daemon", "--no-alt-screen", "--sandbox", "read-only"))
-    try:
-        verification.run()
-    finally:
-        verification.finish()
+    codex_arguments = ("--no-daemon", "--no-alt-screen", "--sandbox", "read-only")
+    status = 0
+    if suite in ("old", "all"):
+        from verify_herdr import Verification
+        verification = Verification(ROOT / "docs/captures", codex_arguments=codex_arguments)
+        try:
+            verification.run()
+        finally:
+            verification.finish()
+    if suite in ("next", "all"):
+        from next_suite import run_suite
+        status = run_suite(ROOT / NEXT_RUN, codex_arguments, only)
+    if status:
+        raise SystemExit(status)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", action="store_true", help="Run real Herdr E2E in a disposable sandbox")
     parser.add_argument("--codex-binary", help="Native Linux Codex executable, if auto-discovery fails")
-    parser.add_argument("--output", type=Path, default=ROOT / "docs/sandbox", help="Evidence destination")
+    parser.add_argument("--suite", choices=("old", "next", "all"), default="old",
+                        help="old: original scenarios + installer lifecycle (docs/sandbox); next: PLAN section 10 "
+                             "scenarios (docs/sandbox-next); all: both")
+    parser.add_argument("--only", help="next suite: comma-separated scenario ID prefixes, e.g. S1,R03,T")
+    parser.add_argument("--output", type=Path, default=None,
+                        help="Evidence destination for the old suite (default docs/sandbox)")
+    parser.add_argument("--next-output", type=Path, default=ROOT / "docs/sandbox-next",
+                        help="Evidence destination for the next suite (default docs/sandbox-next)")
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    only = [item for item in (args.only or "").split(",") if item] or None
     if args.inside:
-        inside()
+        inside(args.suite, only)
         return 0
+    if args.output is None:
+        args.output = ROOT / "docs/sandbox"
+    if args.suite == "next" and args.output != ROOT / "docs/sandbox":
+        args.next_output = args.output  # --output is accepted for the only suite being run
     if not args.run:
         parser.error("Pass --run to perform opt-in sandbox E2E verification.")
     bwrap = shutil.which("bwrap")
@@ -147,7 +171,7 @@ def main() -> int:
         checkout = Path(temporary) / "checkout"
         shutil.copytree(ROOT, checkout, ignore=shutil.ignore_patterns(
             ".git", ".venv", "__pycache__", ".pytest_cache", "graphify-out", ".graphify-cache",
-            "dist", "captures", "sandbox", "actual-results.json", "isolation.json",
+            "dist", "captures", "sandbox", "sandbox-next", "next-run", "r1-live", "actual-results.json", "isolation.json",
         ))
         system_config = Path(temporary) / "system-config"
         system_config.mkdir()
@@ -187,27 +211,38 @@ def main() -> int:
         for key, value in environment.items():
             command += ["--setenv", key, value]
         command += ["--chdir", str(SANDBOX_ROOT), str(SANDBOX_ROOT / ".venv/bin/python"),
-                    str(SANDBOX_ROOT / "tools/verify_sandbox.py"), "--inside"]
+                    str(SANDBOX_ROOT / "tools/verify_sandbox.py"), "--inside",
+                    "--suite", args.suite, *(["--only", args.only] if args.only else [])]
         try:
-            result = subprocess.run(command, stdin=subprocess.DEVNULL, timeout=240)
+            result = subprocess.run(command, stdin=subprocess.DEVNULL, timeout=TIMEOUTS[args.suite])
             returncode = result.returncode
         except subprocess.TimeoutExpired:
             # Killing PID namespace init terminates all descendants, including servers.
             print("Sandbox E2E timed out; its process namespace was terminated.", file=sys.stderr)
             returncode = 124
-        for name in ("captures", "actual-results.json", "isolation.json"):
-            source = checkout / "docs" / name
-            target = destination / name
-            if target.is_dir():
-                shutil.rmtree(target)
-            elif target.exists():
-                target.unlink()
-            if source.is_dir():
-                shutil.copytree(source, target)
-            elif source.is_file():
-                shutil.copy2(source, target)
+        def collect(source_dir: Path, target_dir: Path) -> None:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            for name in ("captures", "actual-results.json", "isolation.json"):
+                source, target = source_dir / name, target_dir / name
+                if target.is_dir():
+                    shutil.rmtree(target)
+                elif target.exists():
+                    target.unlink()
+                if source.is_dir():
+                    shutil.copytree(source, target)
+                elif source.is_file():
+                    shutil.copy2(source, target)
+        if args.suite in ("old", "all"):
+            collect(checkout / "docs", destination)
+        if args.suite in ("next", "all"):
+            next_destination = args.next_output.resolve()
+            collect(checkout / NEXT_RUN, next_destination)
+            if args.suite == "next":
+                destination = next_destination
+            else:
+                (next_destination / "run.json").write_text(json.dumps({"exit_code": returncode}, indent=2) + "\n")
         (destination / "run.json").write_text(json.dumps({
-            "exit_code": returncode, "date": datetime.now().astimezone().isoformat(),
+            "suite": args.suite, "exit_code": returncode, "date": datetime.now().astimezone().isoformat(),
             "cleanup": "Disposable checkout removed; namespace processes terminated on exit",
         }, indent=2) + "\n")
         print(f"Sandbox evidence: {destination}", flush=True)
