@@ -41,7 +41,6 @@ class Client:
         self.apply_on_error = apply_on_error
         self.reads = []
         self.writes = []
-        self.notifications = []
 
     def get_snapshot(self, invocation):
         self.reads.append(invocation)
@@ -66,9 +65,6 @@ class Client:
             raise self.rename_error
         return deepcopy(self.current.agent)
 
-    def notify(self, title):
-        self.notifications.append(title)
-
 
 def controller(mode="open", initial=None, **client_options):
     initial = initial or snapshot()
@@ -86,23 +82,10 @@ def test_rename_reads_before_and_after_one_write_to_the_frozen_target():
     assert subject.state == "closed"
     assert client.writes == [("pane-1", "new-agent")]
     assert client.reads == [INVOCATION, INVOCATION]
-    assert client.notifications == []
 
 
-def test_synced_name_is_the_exact_label_and_not_a_submit_argument():
-    subject, client = controller("sync")
-    assert subject.state == "confirming"
-    assert subject.initial_agent_name == "reviewer"
-    assert subject.proposed_name == "backend-api"
-    assert client.writes == []
-    assert submit(subject, "another-name")
-    assert client.writes == [("pane-1", "backend-api")]
-    assert client.notifications == ["Agent name synced."]
-
-
-@pytest.mark.parametrize("mode", ["open", "sync"])
-def test_cancel_closes_without_read_or_write(mode):
-    subject, client = controller(mode)
+def test_cancel_closes_without_read_or_write():
+    subject, client = controller()
     assert subject.cancel()
     assert subject.state == "closed"
     assert not submit(subject, "new-agent")
@@ -119,28 +102,16 @@ def test_invalid_input_is_retained_and_never_queries_or_writes(name):
     assert submit(subject, "corrected")
 
 
-@pytest.mark.parametrize("label", [None, "", "Backend API", "backend\n"])
-def test_bad_pane_labels_disable_confirmation_without_writes(label):
-    subject, client = controller("sync", snapshot(label=label))
-    assert subject.state == "error" and not subject.can_submit
-    assert not submit(subject)
-    assert client.reads == client.writes == []
-    assert subject.cancel()
-
-
-def test_unnamed_live_agent_can_be_renamed_or_synced():
+def test_unnamed_live_agent_can_be_renamed():
     initial = snapshot(name=None)
     subject, client = controller(initial=initial)
     assert subject.initial_agent_name == "" and subject.can_submit
     assert "no name" in subject.message
     assert submit(subject, "named")
-    sync_subject, _ = controller("sync", initial)
-    assert submit(sync_subject)
 
 
-@pytest.mark.parametrize("mode", ["open", "sync"])
-def test_same_name_revalidates_but_never_writes(mode):
-    subject, client = controller(mode, snapshot(name="backend-api"))
+def test_same_name_revalidates_but_never_writes():
+    subject, client = controller(initial=snapshot(name="backend-api"))
     assert submit(subject, "backend-api")
     assert client.reads == [INVOCATION]
     assert client.writes == []
@@ -183,18 +154,6 @@ def test_changed_session_value_stops_without_writing():
     assert not submit(subject, "new-name")
     assert "target agent has changed" in subject.message
     assert client.writes == []
-
-
-@pytest.mark.parametrize("name,label,message", [
-    ("reviewer", "changed-pane", "pane name has changed"),
-    ("another-agent-name", "backend-api", "agent name has changed"),
-    ("backend-api", "backend-api", "agent name has changed"),
-])
-def test_sync_confirmation_rejects_changed_source_or_current_name(name, label, message):
-    subject, client = controller("sync", lookups=[snapshot(name=name, label=label)])
-    assert not submit(subject)
-    assert message in subject.message
-    assert not subject.can_submit and client.writes == []
 
 
 def test_status_revision_focus_and_cwd_changes_are_not_replacement():
@@ -285,11 +244,10 @@ def test_fatal_public_error_codes_require_reopening_even_if_later_lookup_would_m
     assert subject.cancel()
 
 
-@pytest.mark.parametrize("mode", ["open", "sync"])
-def test_uncertain_applied_write_reconciles_on_user_retry_without_another_write(mode):
+def test_uncertain_applied_write_reconciles_on_user_retry_without_another_write():
     error = HerdrError(UNCERTAIN_MESSAGE, uncertain=True)
-    subject, client = controller(mode, rename_error=error, apply_on_error=True)
-    name = "backend-api" if mode == "sync" else "new-name"
+    subject, client = controller(rename_error=error, apply_on_error=True)
+    name = "new-name"
     assert not submit(subject, name)
     assert subject.state == "error" and subject.can_submit
     assert len(client.writes) == 1
@@ -335,17 +293,6 @@ def test_post_write_identity_change_is_not_accepted_as_success():
     assert subject.state == "error" and not subject.can_submit
     assert "target agent has changed" in subject.message
     assert UNCERTAIN_MESSAGE in subject.message
-    assert len(client.writes) == 1
-
-
-def test_notification_failure_does_not_reopen_verified_sync():
-    subject, client = controller("sync")
-
-    def fail_notification(title):
-        raise HerdrError("Could not connect to Herdr.")
-
-    client.notify = fail_notification
-    assert submit(subject) and subject.state == "closed"
     assert len(client.writes) == 1
 
 

@@ -6,8 +6,10 @@ import unittest
 from prompt_toolkit.data_structures import Size
 
 from dialog_case import DialogCase
+from herdr_agent_rename.controller import Controller
 from herdr_agent_rename.theme import PALETTES, theme_from_config
 from herdr_agent_rename.ui import RenameDialog, run_dialog
+from test_controller import INVOCATION, Client, snapshot
 from ui_support import (
     FakeController,
     RecordingOutput,
@@ -114,7 +116,7 @@ class LayoutTests(RenameCase):
         await task
 
     async def test_run_dialog_selects_rename_dialog(self):
-        task = asyncio.create_task(run_dialog(FakeController(mode="sync")))
+        task = asyncio.create_task(run_dialog(FakeController()))
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
             await task
@@ -400,3 +402,37 @@ class SafetyTests(RenameCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RealControllerTests(RenameCase):
+    """The rename dialog driven through a PTY with the real Controller."""
+
+    async def run_case(self, name, keys):
+        initial = snapshot(name=name)
+        client = Client(initial)
+        controller = Controller(client, INVOCATION, initial, "open")
+        dialog, task, _, _ = await self.start(controller, RecordingOutput(columns=54, rows=5))
+        self.pipe.send_text(keys)
+        result = await asyncio.wait_for(task, 3)
+        return client, result
+
+    async def test_enter_trims_the_name_before_renaming(self):
+        client, result = await self.run_case("  coder  ", "\r\r")
+        self.assertTrue(result)
+        self.assertEqual(client.writes, [("pane-1", "coder")])
+
+    async def test_empty_field_clears_the_explicit_name_exactly_once(self):
+        client, result = await self.run_case("coder", "\x03\r\r\r")
+        self.assertTrue(result)
+        self.assertEqual(client.writes, [("pane-1", None)])
+        self.assertNotIn("name", client.current.agent)
+
+    async def test_empty_field_on_an_unnamed_agent_writes_nothing(self):
+        client, result = await self.run_case(None, "\x03\r")
+        self.assertTrue(result)
+        self.assertEqual(client.writes, [])
+
+    async def test_clearing_the_field_alone_or_escape_never_writes(self):
+        client, result = await self.run_case("coder", "\x03\x1b")
+        self.assertFalse(result)
+        self.assertEqual(client.writes, [])

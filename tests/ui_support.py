@@ -65,7 +65,7 @@ class FakeController:
         self.initial_agent_name = initial
         self.proposed_name = proposed
         self.message = error
-        self.state = "error" if error else ("confirming" if mode == "sync" else "editing")
+        self.state = "error" if error else "editing"
         self.can_submit = not error
         self.busy = False
         self.attempts = []

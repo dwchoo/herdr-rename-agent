@@ -1,133 +1,190 @@
-"""Single-pane sync confirmation dialog (to be replaced by workspace batch sync)."""
+"""Workspace sync dialog: preview table, confirmation, progress and outcomes.
+
+One popup application for the four ``SyncRunner`` modes:
+
+* confirm: scrollable table, totals, ``[ Yes ]  [ No ]`` (No selected first).
+  Nothing is written before Yes. Yes calls ``runner.run`` exactly once.
+* running: ``[ Stop ]`` replaces Yes/No. Stop, Esc and Ctrl+C only request a
+  cancellation; the popup stays open until the in-flight row is reconciled.
+* done: per-row outcomes, the summary line and a single ``[ Close ]``.
+* info / error: the same table (or the error text) with ``[ Close ]`` only.
+
+Layout (rows from the top): title, column header, table, detail of the cursor
+row (full names), totals, message, buttons, hints. Only the table scrolls.
+The Tab column collapses first and the Pane column second on narrow terminals.
+Everything is rendered from local state; painting never touches the API.
+"""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.input import Input
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout import (
-    DynamicContainer,
-    HSplit,
-    Layout,
-    VSplit,
-    Window,
-)
+from prompt_toolkit.layout import DynamicContainer, Layout, Window
 from prompt_toolkit.layout.controls import FormattedTextControl, UIContent
-from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.mouse_events import MouseButton, MouseEvent, MouseEventType
 from prompt_toolkit.output import ColorDepth, Output
 from prompt_toolkit.styles import Style
 from prompt_toolkit.utils import get_cwidth
 
+from ..sync import RowOutcome, RowResult, RowStatus, SyncProgress, SyncRow, SyncRunner
 from ..theme import Theme, load_theme
-from .common import MIN_WIDTH, RESIZE_MESSAGE, bounded_text, display_text, resize_text
+from .common import MIN_WIDTH, bounded_text, display_text, pad_cells, resize_text, wrap_cells
 
-if TYPE_CHECKING:
-    from ..controller import Controller
+MIN_ROWS = 10
+BUTTON_GAP = 2
+MISSING = "—"
+UNNAMED = "(unnamed)"
+ARROW = "→"
+STATUS_CAP = 24
+STATUS_MIN = 10
+SIDE_MIN = 9
+
+PLANNED = {
+    RowStatus.ELIGIBLE: ("change", "warn"),
+    RowStatus.MATCHING: ("matches", "ok"),
+    RowStatus.NO_PANE_NAME: ("no pane name", "dim"),
+    RowStatus.NO_AGENT: ("no agent", "dim"),
+    RowStatus.INVALID_LABEL: ("invalid name", "bad"),
+    RowStatus.CONFLICT: ("conflict", "bad"),
+    RowStatus.LOOKUP_FAILED: ("lookup failed", "bad"),
+}
+OUTCOME_STYLE = {
+    RowOutcome.SYNCED: "ok", RowOutcome.MATCHING: "ok", RowOutcome.SKIPPED: "warn",
+    RowOutcome.FAILED: "bad", RowOutcome.UNCERTAIN: "bad", RowOutcome.NOT_ATTEMPTED: "dim",
+}
+OUTCOME_TEXT = {
+    RowOutcome.SYNCED: "synced", RowOutcome.MATCHING: "already matching",
+    RowOutcome.UNCERTAIN: "uncertain", RowOutcome.NOT_ATTEMPTED: "not attempted",
+}
 
 
-MIN_SYNC_HEIGHT = 12
-__all__ = ["SyncDialog", "RESIZE_MESSAGE", "display_text"]
+def fit(text: str, width: int) -> str:
+    """Pad or cut to exactly ``width`` cells, marking a cut with an ellipsis."""
+    width = max(0, width)
+    if get_cwidth(text) <= width:
+        return pad_cells(text, width)
+    out, cells = "", 0
+    for char in text:
+        step = get_cwidth(char)
+        if cells + step > width - 1:
+            break
+        out += char
+        cells += step
+    return pad_cells(out + "…", width)
 
 
-class ReadOnlyNameControl(FormattedTextControl):
-    """An exact source name with a movable viewing position, never an editor."""
+def tab_text(row: SyncRow) -> str:
+    label = display_text(row.tab_label) if row.tab_label else ""
+    number = str(row.tab_number) if row.tab_number is not None else ""
+    if number and label and number != label:
+        return f"{number} {label}"
+    return label or number or MISSING
 
-    def __init__(self, dialog: SyncDialog, value: str) -> None:
-        super().__init__(text="", focusable=False)
+
+def agent_text(row: SyncRow) -> str:
+    if row.status is RowStatus.NO_AGENT:
+        return MISSING
+    return display_text(row.agent_name) if row.agent_name else UNNAMED
+
+
+def label_text(row: SyncRow) -> str:
+    return display_text(row.label) if row.label else MISSING
+
+
+def column_widths(avail: int, rows: tuple[SyncRow, ...], statuses: list[str]) -> dict[str, int]:
+    """Cell widths of the visible columns; hidden columns are absent."""
+    natural = {
+        "tab": min(14, max([3] + [get_cwidth(tab_text(r)) for r in rows])),
+        "pane": min(10, max([4] + [get_cwidth(r.pane_id) for r in rows])),
+        "agent": max([5] + [get_cwidth(agent_text(r)) for r in rows]),
+        "label": max([9] + [get_cwidth(label_text(r)) for r in rows]),
+    }
+    status_natural = min(STATUS_CAP, max([6] + [get_cwidth(s) for s in statuses]))
+    for shown in (("tab", "pane"), ("pane",), ()):
+        fixed = sum(natural[name] for name in shown)
+        columns = len(shown) + 4  # agent, arrow, label, status
+        rest = avail - fixed - 1 - (columns - 1)
+        if rest - STATUS_MIN >= 2 * SIDE_MIN or not shown:
+            break
+    wanted = min(2 * 12, natural["agent"] + natural["label"])
+    status = min(status_natural, max(STATUS_MIN, rest - wanted)) if rest > 0 else STATUS_MIN
+    sides = max(2 * SIDE_MIN, rest - status)
+    agent, label = natural["agent"], natural["label"]
+    if agent + label > sides:
+        if agent < sides // 2:
+            label = sides - agent
+        elif label < sides // 2:
+            agent = sides - label
+        else:
+            agent, label = sides // 2, sides - sides // 2
+    widths = {name: natural[name] for name in shown}
+    widths.update({"agent": agent, "arrow": 1, "label": label, "status": status})
+    return widths
+
+
+class SyncControl(FormattedTextControl):
+    def __init__(self, dialog: SyncDialog) -> None:
+        super().__init__(text="", focusable=True, show_cursor=False)
         self.dialog = dialog
-        self.value = display_text(value)
 
     def create_content(self, width: int, height: int) -> UIContent:
-        return UIContent(
-            get_line=lambda _: [("", self.value + " ")],
-            line_count=1,
-            cursor_position=Point(x=min(self.dialog._name_position, len(self.value)), y=0),
-            show_cursor=False,
-        )
+        return self.dialog.render(width, height)
 
-
-class ActionButton:
-    def __init__(self, dialog: SyncDialog, label: str, affirmative: bool) -> None:
-        self.dialog = dialog
-        self.label = label
-        self.affirmative = affirmative
-        self.control = FormattedTextControl(self._text, focusable=True)
-        self.window = Window(self.control, width=len(label) + 4, height=1)
-
-    @property
-    def enabled(self) -> bool:
-        if self.dialog.busy:
-            return False
-        return not self.affirmative or (
-            self.dialog.has_room and self.dialog.controller.can_submit
-        )
-
-    def _press(self, mouse_event: MouseEvent) -> Any:
-        if (
-            mouse_event.event_type != MouseEventType.MOUSE_DOWN
-            or mouse_event.button != MouseButton.LEFT
-        ):
+    def mouse_handler(self, mouse_event: MouseEvent) -> Any:
+        kind = mouse_event.event_type
+        if kind == MouseEventType.SCROLL_UP:
+            self.dialog.move(-3)
+        elif kind == MouseEventType.SCROLL_DOWN:
+            self.dialog.move(3)
+        elif kind == MouseEventType.MOUSE_DOWN and mouse_event.button == MouseButton.LEFT:
+            self.dialog.press(mouse_event.position.x, mouse_event.position.y)
+        else:
             return NotImplemented
-        self.dialog.press(self)
         return None
-
-    def _text(self) -> list[Any]:
-        style = "class:button"
-        if not self.enabled:
-            style += " class:disabled"
-        elif self.dialog.app.layout.has_focus(self.control):
-            style += " class:button.focused"
-        return [(style, f"[ {self.label} ]", self._press)]
 
 
 class SyncDialog:
-    """One popup application; the controller owns all target/write decisions."""
-
     def __init__(
         self,
-        controller: Controller,
+        runner: SyncRunner,
         *,
         input: Input | None = None,
         output: Output | None = None,
         theme: Theme | None = None,
     ) -> None:
-        self.controller = controller
+        self.runner = runner
+        self.plan = runner.plan
+        self.rows: tuple[SyncRow, ...] = runner.plan.rows if runner.plan is not None else ()
         self.theme = theme or load_theme()
-        self._working = False
-        self._was_small = False
-        self._previous_focus: Any = None
-        self._name_position = 0
-        self.name_controls: list[ReadOnlyNameControl] = []
-        self.name_windows: list[Window] = []
-        self.apply_button = ActionButton(self, "Yes", True)
-        self.cancel_button = ActionButton(self, "No", False)
-        self.buttons = (self.apply_button, self.cancel_button)
+        self.selected = "no"  # confirm-mode button: "yes" or "no"
+        self.cursor = 0
+        self.top = 0
+        self.follow = False
+        self.results: dict[str, RowResult] = {}
+        self.current: str | None = None
+        self.done_count = 0
+        self._started = False
+        self._finished = False
+        self._cancel_pending = False
+        self.report = None
+        self._body = 1
+        self._table: tuple[int, int] = (0, 0)  # first table row, row count
+        self._button_row = 0
+        self._buttons: list[tuple[str, int, int]] = []
+        self.control = SyncControl(self)
         self._resize_control = FormattedTextControl(self._resize_text, focusable=True)
-        self._resize_layout = Window(self._resize_control, wrap_lines=True, style="class:panel")
-        self._normal_layout = self._build_layout()
-        root = DynamicContainer(
-            lambda: self._normal_layout if self.has_room else self._resize_layout
-        )
-        styles = self.theme.styles()
+        self._main = Window(self.control, style="class:panel", wrap_lines=False)
+        self._resize = Window(self._resize_control, style="class:panel", wrap_lines=True)
+        root = DynamicContainer(lambda: self._main if self.has_room else self._resize)
         self.app: Application[bool] = Application(
-            layout=Layout(root, focused_element=self.cancel_button.control),
+            layout=Layout(root, focused_element=self._main),
             key_bindings=self._bindings(),
-            style=Style.from_dict(
-                {
-                    "panel": styles["panel"],
-                    "button": styles["secondary"],
-                    "button.focused": styles["primary"],
-                    "disabled": styles["disabled"],
-                    "error": styles["error"],
-                    "hint": styles["hint"],
-                }
-            ),
+            style=Style.from_dict(self._styles()),
             color_depth=ColorDepth.DEPTH_24_BIT,
             full_screen=True,
             mouse_support=True,
@@ -136,216 +193,412 @@ class SyncDialog:
             input=input,
             output=output,
         )
-        # Esc is a cancellation key, while VT100 arrow/Shift+Tab sequences
-        # still need the parser to receive their remaining bytes.
+        # Esc cancels, while escape sequences still need their remaining bytes.
         self.app.ttimeoutlen = 0.05
         self.app.timeoutlen = 0.05
 
+    def _styles(self) -> dict[str, str]:
+        base = self.theme.styles()
+        p, spec = self.theme.palette, self.theme.spec
+        select = p["selection_bg"] or p["surface0"]
+        styles = {
+            "panel": base["panel"], "title": base["title"], "hint": base["hint"],
+            "error": base["error"], "primary": base["primary"], "secondary": base["secondary"],
+            "disabled": base["disabled"],
+            "head": spec(p["subtext0"], p["panel_bg"], True),
+            "detail": spec(p["text"], p["surface0"]),
+            "selected": spec(p["text"], select, True),
+        }
+        for name, token in (("ok", "green"), ("warn", "yellow"), ("bad", "red"),
+                            ("dim", "overlay1"), ("run", "accent")):
+            styles[name] = spec(p[token], p["panel_bg"])
+            styles["sel." + name] = spec(p[token], select, True)
+        return styles
+
+    # State ---------------------------------------------------------------
+
     @property
-    def busy(self) -> bool:
-        return self._working or self.controller.busy
+    def phase(self) -> str:
+        if self.runner.mode != "confirm":
+            return self.runner.mode  # "info" or "error"
+        if not self._started:
+            return "confirm"
+        return "done" if self._finished else "running"
 
     @property
     def has_room(self) -> bool:
-        # During Application construction, use the requested output if present;
-        # thereafter the application owns the terminal connection.
         app = getattr(self, "app", None)
         if app is None:
             return True
         size = app.output.get_size()
-        return size.columns >= MIN_WIDTH and size.rows >= MIN_SYNC_HEIGHT
-
-    def _label(self, text: Any, *, height: int = 1, style: str = "") -> Window:
-        return Window(
-            FormattedTextControl(text),
-            height=height,
-            wrap_lines=True,
-            style=style,
-        )
-
-    def _build_layout(self) -> VSplit:
-        spacer = lambda: Window(height=1)
-        # Herdr draws the manifest entrypoint title in the outer popup border.
-        rows = [
-            self._label("The pane name will be used as the agent name.", height=2),
-            self._name_field("Current agent name", self.controller.initial_agent_name or "(unnamed)"),
-            self._name_field("New agent name", self.controller.proposed_name),
-            spacer(),
-            self._label(self._status_text, height=4),
-            VSplit(
-                [
-                    Window(width=Dimension(weight=1)),
-                    self.apply_button.window,
-                    Window(width=2),
-                    self.cancel_button.window,
-                ],
-                height=1,
-            ),
-            Window(height=Dimension(weight=1)),
-        ]
-        return VSplit([Window(width=1), HSplit(rows), Window(width=1)], style="class:panel")
-
-    def _name_field(self, label: str, value: str) -> HSplit:
-        control = ReadOnlyNameControl(self, value)
-        window = Window(control, height=1, wrap_lines=False)
-        self.name_controls.append(control)
-        self.name_windows.append(window)
-        return HSplit([self._label(f"{label}:"), window])
+        return size.columns >= MIN_WIDTH and size.rows >= MIN_ROWS
 
     @property
-    def names_overflow(self) -> bool:
-        width = max(1, self.app.output.get_size().columns - 2)
-        return any(get_cwidth(control.value) > width for control in self.name_controls)
+    def result(self) -> bool:
+        return bool(self.report and self.report.counts[RowOutcome.SYNCED])
 
-    @staticmethod
-    def _bounded_text(text: str, width: int, lines: int) -> str:
-        return bounded_text(text, width, lines)
+    # Row text ------------------------------------------------------------
 
-    def _status_text(self) -> list[tuple[str, str]]:
-        state = str(self.controller.state)
-        if self.busy:
-            message = "Renaming agent..." if state.endswith("submitting") else "Checking the target..."
-            style = "class:hint"
-        elif self.controller.message:
-            message = display_text(self.controller.message)
-            style = "class:error"
+    def status_of(self, row: SyncRow) -> tuple[str, str]:
+        """Status column text and style name from local state only."""
+        if self.current == row.pane_id and row.pane_id not in self.results:
+            return "syncing…", "run"
+        result = self.results.get(row.pane_id)
+        if result is None:
+            return PLANNED[row.status]
+        outcome, style = result.outcome, OUTCOME_STYLE[result.outcome]
+        if outcome in OUTCOME_TEXT:
+            return OUTCOME_TEXT[outcome], style
+        if outcome is RowOutcome.SKIPPED and row.status not in (RowStatus.ELIGIBLE, RowStatus.MATCHING):
+            return "skipped: " + PLANNED[row.status][0], style
+        return f"{outcome.value}: {display_text(result.detail)}", style
+
+    def detail_of(self, row: SyncRow) -> str:
+        result = self.results.get(row.pane_id)
+        reason = result.detail if result else row.detail
+        head = f"{tab_text(row)} · {row.pane_id} · {agent_text(row)} {ARROW} {label_text(row)}"
+        return head + (" · " + display_text(reason) if reason else "")
+
+    def totals(self, width: int) -> str:
+        counts = {status: 0 for status in RowStatus}
+        for row in self.rows:
+            counts[row.status] += 1
+        change, matches = counts[RowStatus.ELIGIBLE], counts[RowStatus.MATCHING]
+        skipped = counts[RowStatus.NO_PANE_NAME] + counts[RowStatus.NO_AGENT] + counts[RowStatus.INVALID_LABEL]
+        trouble = counts[RowStatus.CONFLICT] + counts[RowStatus.LOOKUP_FAILED]
+        for labels in (("change", "matches", "skipped", "conflicts/errors"),
+                       ("change", "match", "skip", "conflicts"),
+                       ("chg", "ok", "skip", "err")):
+            text = " · ".join(f"{n} {t}" for n, t in zip((change, matches, skipped, trouble), labels))
+            if get_cwidth(text) <= width:
+                return text
+        return text
+
+    def message(self) -> tuple[str, str]:
+        phase = self.phase
+        if phase == "confirm":
+            count = len(self.plan.eligible) if self.plan else 0
+            return "hint", f"Yes renames {count} agent{'s' if count != 1 else ''} to the pane names shown."
+        if phase == "info":
+            return "hint", "Nothing can be synced. Review the rows above, then close."
+        if phase == "running":
+            if self.runner.cancel_requested or self._cancel_pending:
+                return "hint", "Stopping after the current pane…"
+            return "hint", f"Syncing {min(self.done_count + 1, len(self.rows))} of {len(self.rows)}…"
+        if phase == "done":
+            report = self.report
+            text = report.summary() if report else ""
+            if report and report.canceled:
+                text = "Canceled. " + text
+            if report and report.stopped:
+                text += ". Stopped: " + display_text(report.stopped)
+            bad = report and (report.counts[RowOutcome.FAILED] or report.counts[RowOutcome.UNCERTAIN])
+            return ("error" if bad else "hint"), text or "Nothing was changed."
+        return "error", ""
+
+    def hints(self, width: int) -> str:
+        phase = self.phase
+        if phase == "confirm":
+            options = ("↑↓ PgUp/PgDn scroll · ←→/Tab select · Y/N · Enter · Esc",
+                       "↑↓ PgUp/PgDn scroll · ←→ select · Y/N · Esc",
+                       "↑↓ scroll · ←→ select · Y/N · Esc",
+                       "↑↓ ←→ Y/N Enter Esc")
+        elif phase == "running":
+            options = ("↑↓ PgUp/PgDn scroll · Esc: stop after this pane",
+                       "↑↓ scroll · Esc: stop", "Esc: stop")
         else:
-            message = ""
-            style = ""
-        width = max(1, self.app.output.get_size().columns - 2)
-        if self.names_overflow and not self.busy:
-            text = self._bounded_text(message, width, 3)
-            return [(style, text + "\n"), ("class:hint", "Home/End: scroll names.")]
-        return [(style, self._bounded_text(message, width, 4))]
+            options = ("↑↓ PgUp/PgDn scroll · Enter/Esc: close", "↑↓ scroll · Enter: close", "Enter: close")
+        return next((o for o in options if get_cwidth(o) <= width), options[-1])
+
+    # Rendering -----------------------------------------------------------
+
+    def _button_labels(self) -> list[tuple[str, str, str]]:
+        phase = self.phase
+        if phase == "confirm":
+            return [("yes", "[ Yes ]", "primary" if self.selected == "yes" else "secondary"),
+                    ("no", "[ No ]", "primary" if self.selected == "no" else "secondary")]
+        if phase == "running":
+            stopping = self.runner.cancel_requested or self._cancel_pending
+            return [("stop", "[ Stopping… ]" if stopping else "[ Stop ]", "disabled" if stopping else "primary")]
+        return [("close", "[ Close ]", "primary")]
+
+    def render(self, width: int, height: int) -> UIContent:
+        width, height = max(1, width), max(1, height)
+        blank = [("class:panel", " " * width)]
+        lines: list[list[tuple[str, str]]] = [list(blank) for _ in range(height)]
+        inner = max(1, width - 2)
+        detail_rows = 2 if height >= 14 else 1
+        table_rows = max(1, height - 6 - detail_rows)
+        first_table = 2
+        self._table = (first_table, table_rows)
+        row_no = lambda n: min(n, height - 1)
+
+        title = "Sync agent names"
+        if self.plan is not None:
+            label = display_text(self.plan.workspace_label) if self.plan.workspace_label else ""
+            if label:
+                title += f' · workspace "{label}"'
+            title += f" · {len(self.rows)} pane{'s' if len(self.rows) != 1 else ''}"
+        lines[0] = [("class:title", pad_cells(" " + fit(title, inner).rstrip(), width))]
+
+        if self.phase == "error":
+            wrapped = wrap_cells(display_text(self.runner.error or "The workspace could not be synced."), inner)
+            for index, text in enumerate(wrapped[:table_rows + 1]):
+                lines[row_no(1 + index)] = [("class:error", pad_cells(" " + text, width))]
+        else:
+            statuses = [self.status_of(r)[0] for r in self.rows]
+            widths = column_widths(inner - 1, self.rows, statuses)
+            self.cursor = min(max(0, self.cursor), max(0, len(self.rows) - 1))
+            self.top = min(max(0, self.top), max(0, len(self.rows) - table_rows))
+            if self.cursor < self.top:
+                self.top = self.cursor
+            elif self.cursor >= self.top + table_rows:
+                self.top = self.cursor - table_rows + 1
+            titles = {"tab": "Tab", "pane": "Pane", "agent": "Agent", "arrow": ARROW,
+                      "label": "Pane name", "status": "Status"}
+            header = "  " + " ".join(fit(titles[name], w) for name, w in widths.items())
+            lines[1] = [("class:head", pad_cells(header, width))]
+            for offset in range(table_rows):
+                index = self.top + offset
+                if index >= len(self.rows):
+                    break
+                lines[first_table + offset] = self._table_row(self.rows[index], widths, width, index == self.cursor)
+            if not self.rows:
+                lines[first_table] = [("class:hint", pad_cells(" No panes in this workspace.", width))]
+            if self.rows:
+                detail = bounded_text(self.detail_of(self.rows[self.cursor]), inner, detail_rows).split("\n")
+                for offset in range(detail_rows):
+                    text = detail[offset] if offset < len(detail) else ""
+                    lines[first_table + table_rows + offset] = [("class:detail", pad_cells(" " + text, width))]
+
+        base = first_table + table_rows + detail_rows
+        lines[base] = [("class:hint", pad_cells(" " + self.totals(inner), width))]
+        style, text = self.message()
+        wrapped = wrap_cells(text, inner)
+        shown = fit(wrapped[0], inner).rstrip() if wrapped else ""
+        lines[base + 1] = [("class:" + style, pad_cells(" " + shown, width))]
+
+        labels = self._button_labels()
+        total = sum(get_cwidth(t) for _, t, _ in labels) + BUTTON_GAP * (len(labels) - 1)
+        x = max(0, (width - total) // 2)
+        row: list[tuple[str, str]] = []
+        self._buttons = []
+        position = 0
+        for name, text, style in labels:
+            row.append(("class:panel", " " * (x - position)))
+            row.append(("class:" + style, text))
+            self._buttons.append((name, x, x + get_cwidth(text)))
+            x += get_cwidth(text)
+            position = x
+            x += BUTTON_GAP
+        row.append(("class:panel", " " * max(0, width - position)))
+        self._button_row = base + 2
+        lines[row_no(base + 2)] = row
+        lines[row_no(base + 3)] = [("class:hint", pad_cells(" " + self.hints(inner), width))]
+        return UIContent(
+            get_line=lambda number: lines[number],
+            line_count=height,
+            cursor_position=Point(x=0, y=0),
+            show_cursor=False,
+        )
+
+    def _table_row(self, row: SyncRow, widths: dict[str, int], width: int, selected: bool) -> list[tuple[str, str]]:
+        base = "selected" if selected else "panel"
+        status, style = self.status_of(row)
+        cells = {
+            "tab": tab_text(row), "pane": row.pane_id, "agent": agent_text(row),
+            "arrow": ARROW if row.label and row.status is not RowStatus.NO_AGENT else "",
+            "label": label_text(row), "status": status,
+        }
+        fragments: list[tuple[str, str]] = [(f"class:{base}", "▸ " if selected else "  ")]
+        used = 2
+        names = list(widths)
+        for index, name in enumerate(names):
+            if index:
+                fragments.append((f"class:{base}", " "))
+                used += 1
+            cell_style = base
+            if name == "status":
+                cell_style = ("sel." if selected else "") + style
+            elif name in ("agent", "label") and cells[name] in (MISSING, UNNAMED):
+                cell_style = ("sel." if selected else "") + "dim"
+            fragments.append((f"class:{cell_style}", fit(cells[name], widths[name])))
+            used += widths[name]
+        fragments.append((f"class:{base}", " " * max(0, width - used)))
+        return fragments
 
     def _resize_text(self) -> str:
-        return resize_text(self.app.output.get_size(), self.busy)
+        return resize_text(self.app.output.get_size(), self.phase == "running")
 
     def _handle_resize(self, app: Application[bool]) -> None:
-        small = not self.has_room
-        if small and not self._was_small:
-            self._previous_focus = app.layout.current_control
-            app.layout.focus(self._resize_control)
-        elif not small and self._was_small:
-            app.layout.focus(self._previous_focus or self.cancel_button.control)
-        self._was_small = small
+        target = self._main if self.has_room else self._resize
+        if app.layout.current_window is not target:
+            app.layout.focus(target)
 
-    def _focus(self, reverse: bool = False) -> None:
-        if self.busy or not self.has_room:
+    # Navigation ----------------------------------------------------------
+
+    def move(self, delta: int, absolute: bool = False) -> None:
+        if not self.has_room or not self.rows:
             return
-        controls = [button.control for button in self.buttons]
-        current = self.app.layout.current_control
-        index = controls.index(current) if current in controls else 0
-        self.app.layout.focus(controls[(index + (-1 if reverse else 1)) % len(controls)])
-
-    def _cancel(self) -> None:
-        if not self.busy and self.controller.cancel():
-            self.app.exit(result=False)
-
-    def _affirm(self) -> None:
-        if not self.apply_button.enabled:
-            return
-        # Latch before scheduling the coroutine: multiple keys can be processed
-        # in the same input batch before Controller.submit gets CPU time.
-        self._working = True
+        self.follow = False
+        target = delta if absolute else self.cursor + delta
+        self.cursor = min(max(0, target), len(self.rows) - 1)
         self.app.invalidate()
-        self.app.create_background_task(self._submit())
 
-    async def _submit(self) -> None:
-        try:
-            if await self.controller.submit(None):
-                self.app.exit(result=True)
-        except Exception as exc:
-            self.app.exit(exception=exc)
-        finally:
-            self._working = False
+    def _page(self) -> int:
+        return max(1, self._table[1] - 1)
+
+    def _select(self, reverse: bool = False) -> None:
+        if self.phase == "confirm" and self.has_room:
+            self.selected = "yes" if self.selected == "no" else "no"
             self.app.invalidate()
 
-    def _activate(self) -> None:
-        if self.busy or not self.has_room:
-            return
-        if self.app.layout.has_focus(self.cancel_button.control):
-            self._cancel()
-        else:
-            self._affirm()
+    # Actions -------------------------------------------------------------
 
-    def press(self, button: ActionButton) -> None:
-        """A left-button press on Yes or No selects and activates it."""
-        if self.busy or not self.has_room:
-            return
-        self.app.layout.focus(button.control)
-        if button.affirmative:
-            self._affirm()
-        else:
-            self._cancel()
-
-    def _scroll_names(self, amount: int | str) -> None:
-        maximum = max((len(control.value) for control in self.name_controls), default=0)
-        if amount == "home":
-            self._name_position = 0
-        elif amount == "end":
-            self._name_position = maximum
-        else:
-            self._name_position = min(maximum, max(0, self._name_position + int(amount)))
+    def _stop(self) -> None:
+        """Ask for a cancellation; the popup closes only after the batch ends."""
+        if not self.runner.request_cancel():
+            self._cancel_pending = True
         self.app.invalidate()
+
+    def _activate(self, name: str) -> None:
+        phase = self.phase
+        if phase == "confirm":
+            if name == "yes" and self.has_room:
+                self._start()
+            elif name == "no":
+                self.app.exit(result=False)
+        elif phase == "running":
+            if name == "stop":
+                self._stop()
+        elif name == "close":
+            self.app.exit(result=self.result)
+
+    def _enter(self) -> None:
+        # Enter never stops a running batch: a repeated Enter must be harmless.
+        if self.phase == "confirm":
+            self._activate(self.selected)
+        elif self.phase != "running":
+            self._activate("close")
+
+    def _escape(self) -> None:
+        phase = self.phase
+        if phase == "confirm":
+            self.app.exit(result=False)
+        elif phase == "running":
+            self._stop()
+        else:
+            self.app.exit(result=self.result)
+
+    def _start(self) -> None:
+        if self._started or self.phase != "confirm":
+            return
+        # Latch before scheduling: several keys can arrive in one batch.
+        self._started = True
+        self.follow = True
+        self.app.invalidate()
+        self.app.create_background_task(self._run())
+
+    async def _run(self) -> None:
+        try:
+            self.report = await self.runner.run(self._progress)
+            self.report = self.report or self.runner.report
+        except Exception as exc:
+            self._finished = True
+            self.app.exit(exception=exc)
+            return
+        self._finished = True
+        self.current = None
+        self.app.invalidate()
+
+    def _progress(self, event: SyncProgress) -> None:
+        if self._cancel_pending:
+            self._cancel_pending = not self.runner.request_cancel()
+        if event.result is None:
+            self.current = event.row.pane_id
+            if self.follow:
+                self.cursor = event.index
+        else:
+            self.results[event.row.pane_id] = event.result
+            self.done_count = event.index + 1
+        self.app.invalidate()
+
+    def press(self, x: int, y: int) -> None:
+        """Left-button press at a dialog cell: a button, else select a row."""
+        if y == self._button_row:
+            for name, start, end in self._buttons:
+                if start <= x < end:
+                    self._activate(name)
+                    return
+            return
+        first, count = self._table
+        index = self.top + y - first
+        if first <= y < first + count and 0 <= index < len(self.rows):
+            self.move(index, absolute=True)
+
+    # Keys ----------------------------------------------------------------
 
     def _bindings(self) -> KeyBindings:
         keys = KeyBindings()
-        idle = Condition(lambda: not self.busy and self.has_room)
+        room = Condition(lambda: self.has_room)
+        confirm = Condition(lambda: self.phase == "confirm" and self.has_room)
 
-        @keys.add("tab", eager=True)
-        def _tab(event: Any) -> None:
-            self._focus()
+        @keys.add("up", filter=room)
+        def _up(event: Any) -> None:
+            self.move(-1)
 
-        @keys.add("s-tab", eager=True)
-        def _backtab(event: Any) -> None:
-            self._focus(reverse=True)
+        @keys.add("down", filter=room)
+        def _down(event: Any) -> None:
+            self.move(1)
 
-        @keys.add("left", filter=idle)
-        @keys.add("right", filter=idle)
+        @keys.add("pageup", filter=room)
+        def _page_up(event: Any) -> None:
+            self.move(-self._page())
+
+        @keys.add("pagedown", filter=room)
+        def _page_down(event: Any) -> None:
+            self.move(self._page())
+
+        @keys.add("home", filter=room)
+        def _home(event: Any) -> None:
+            self.move(0, absolute=True)
+
+        @keys.add("end", filter=room)
+        def _end(event: Any) -> None:
+            self.move(len(self.rows), absolute=True)
+
+        @keys.add("left", filter=confirm)
+        @keys.add("right", filter=confirm)
+        @keys.add("tab", filter=confirm, eager=True)
+        @keys.add("s-tab", filter=confirm, eager=True)
         def _switch(event: Any) -> None:
-            self._focus()
+            self._select()
 
-        @keys.add("enter", eager=True)
-        @keys.add(" ", filter=idle)
-        def _enter(event: Any) -> None:
-            self._activate()
+        @keys.add("enter", filter=room, eager=True)
+        @keys.add("c-j", filter=room)
+        @keys.add(" ", filter=room)
+        def _activate(event: Any) -> None:
+            self._enter()
 
-        @keys.add("y", filter=idle)
-        @keys.add("Y", filter=idle)
+        @keys.add("y", filter=confirm)
+        @keys.add("Y", filter=confirm)
         def _yes(event: Any) -> None:
-            self.app.layout.focus(self.apply_button.control)
-            self._affirm()
+            self.selected = "yes"
+            self._start()
 
-        @keys.add("n", filter=idle)
-        @keys.add("N", filter=idle)
+        @keys.add("n", filter=confirm)
+        @keys.add("N", filter=confirm)
         def _no(event: Any) -> None:
-            self._cancel()
+            self.app.exit(result=False)
 
         @keys.add("escape", eager=True)
         @keys.add("c-c", eager=True)
-        @keys.add(Keys.SIGINT, eager=True)
-        def _escape(event: Any) -> None:
-            self._cancel()
+        @keys.add("<sigint>", eager=True)
+        def _cancel(event: Any) -> None:
+            self._escape()
 
-        @keys.add("home", filter=idle)
-        def _inspect_home(event: Any) -> None:
-            self._scroll_names("home")
-
-        @keys.add("end", filter=idle)
-        def _inspect_end(event: Any) -> None:
-            self._scroll_names("end")
-
-        @keys.add("up", filter=idle)
-        def _inspect_up(event: Any) -> None:
-            self._scroll_names(-8)
-
-        @keys.add("down", filter=idle)
-        def _inspect_down(event: Any) -> None:
-            self._scroll_names(8)
-
-        @keys.add(Keys.Any, filter=Condition(lambda: self.busy or not self.has_room))
-        def _locked(event: Any) -> None:
+        @keys.add("<any>")
+        def _ignore(event: Any) -> None:
             pass
 
         return keys

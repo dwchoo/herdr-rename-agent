@@ -12,13 +12,7 @@ from typing import Any, Callable, Protocol
 
 from .models import HerdrError, Invocation, Snapshot
 from .targets import _check_snapshot, check_target
-from .sync import (
-    agent_name,
-    check_sync_agent_name,
-    check_sync_source,
-    pane_label,
-    validate_sync_name,
-)
+from .sync import agent_name
 from .validation import sanitize_message, validate_name
 
 
@@ -54,8 +48,6 @@ class RenameClient(Protocol):
 
     def clear_name(self, pane_id: str) -> dict[str, Any]: ...
 
-    def notify(self, title: str) -> None: ...
-
 
 class Controller:
     def __init__(
@@ -66,7 +58,7 @@ class Controller:
         mode: str,
         initial_error: str = "",
     ) -> None:
-        if mode not in {"open", "sync"}:
+        if mode != "open":
             raise ValueError("Unknown rename mode.")
         self.client = client
         self.invocation = invocation
@@ -75,9 +67,7 @@ class Controller:
         self.state = "loading"
         self.message = ""
         self.initial_agent_name = agent_name(snapshot) if snapshot else ""
-        self.proposed_name = (
-            pane_label(snapshot) if mode == "sync" and snapshot else self.initial_agent_name
-        )
+        self.proposed_name = self.initial_agent_name
         self._busy = False
         self._blocked = False
         self._uncertain_name: str | None = None
@@ -92,14 +82,8 @@ class Controller:
             self._blocked = True
             self._error(error)
             return
-        if mode == "sync":
-            error_message = validate_sync_name(snapshot)
-            if error_message:
-                self._blocked = True
-                self._error(error_message)
-                return
-        self.state = "confirming" if mode == "sync" else "editing"
-        if mode == "open" and not self.initial_agent_name:
+        self.state = "editing"
+        if not self.initial_agent_name:
             self.message = "This agent has no name. Enter a name to continue."
 
     @property
@@ -140,12 +124,6 @@ class Controller:
     async def _success(self) -> bool:
         self.state = "closed"
         self.message = ""
-        if self.mode == "sync":
-            try:
-                await self._thread_call(self.client.notify, "Agent name synced.")
-            except Exception:
-                # Notification transport cannot invalidate a verified rename.
-                pass
         return True
 
     async def submit(self, name: str | None = None) -> bool:
@@ -158,13 +136,12 @@ class Controller:
         self.state = "validating"
         # Open mode receives the raw editor text: trim it as Herdr does (D7);
         # an empty result means "remove the explicit name" (``--clear``).
-        candidate = self.proposed_name if self.mode == "sync" or name is None else trim_name(name)
-        if self.mode == "open":
-            self.proposed_name = candidate
+        candidate = self.proposed_name if name is None else trim_name(name)
+        self.proposed_name = candidate
         write_started = False
         write_returned = False
         try:
-            error_message = None if self.mode == "open" and candidate == "" else validate_name(candidate)
+            error_message = None if candidate == "" else validate_name(candidate)
             if error_message:
                 self._error(error_message)
                 return False
@@ -174,18 +151,13 @@ class Controller:
                 self.message = ""
                 return False
             check_target(self.snapshot, current, self.invocation)
-            if self.mode == "sync":
-                check_sync_source(self.snapshot, current)
             if self._uncertain_name is not None:
-                # Reconcile an already-applied request before checking the initial
-                # sync name, which naturally changed if the first write succeeded.
+                # Reconcile an already-applied request.
                 if candidate == self._uncertain_name and agent_name(current) == candidate:
                     return await self._success()
                 self._blocked = True
                 self._error(UNCERTAIN_MESSAGE + " Reopen the dialog before another rename.")
                 return False
-            if self.mode == "sync":
-                check_sync_agent_name(self.snapshot, current)
             if agent_name(current) == candidate:
                 return await self._success()
             self.state = "submitting"
@@ -198,8 +170,6 @@ class Controller:
             # The response envelope alone is insufficient: inspect the target again.
             verified = await self._thread_call(self.client.get_snapshot, self.invocation)
             check_target(self.snapshot, verified, self.invocation)
-            if self.mode == "sync":
-                check_sync_source(self.snapshot, verified)
             if agent_name(verified) != candidate:
                 raise HerdrError(UNCERTAIN_MESSAGE, code="unconfirmed", uncertain=True)
             return await self._success()

@@ -1,4 +1,4 @@
-"""Pane-label synchronization: legacy single-pane rules plus the workspace batch.
+"""Pane-label synchronization: the workspace batch planner and executor.
 
 Public API for the UI (workspace sync)
 --------------------------------------
@@ -54,15 +54,6 @@ def agent_name(snapshot: Snapshot) -> str:
 def pane_label(snapshot: Snapshot) -> str:
     value = snapshot.pane.get("label")
     return value if isinstance(value, str) else ""
-
-
-def validate_sync_name(snapshot: Snapshot) -> str | None:
-    label = snapshot.pane.get("label")
-    if label is None or label == "":
-        return "This pane has no name."
-    if validate_name(label) is not None:
-        return "The pane name is not a valid agent name."
-    return None
 
 
 def check_sync_source(initial: Snapshot, current: Snapshot) -> None:
