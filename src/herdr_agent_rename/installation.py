@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = "local.agent-rename"
 BINDINGS = {
     PLUGIN + ".open": ("prefix+shift+a", "Rename current agent"),
-    PLUGIN + ".sync": ("prefix+shift+s", "Set agent name from pane name"),
+    PLUGIN + ".sync": ("prefix+shift+s", "Sync agent names from pane names"),
 }
 LEGACY_COMMAND = ('printf "New agent name: "; IFS= read -r name; if [ -n "$name" ]; '
                   'then herdr agent rename "$HERDR_ACTIVE_PANE_ID" "$name"; fi')

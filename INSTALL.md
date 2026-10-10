@@ -20,9 +20,9 @@ bin/install --dry-run
 bin/install
 ```
 
-The first command shows the scoped configuration edit. The second performs it. Dependencies are prepared automatically if missing. The installed shortcuts are `prefix+shift+a` (edit agent name) and `prefix+shift+s` (confirm copying pane name), normally Ctrl+B followed by Shift+A or Shift+S. Installation does not rename an agent or submit input to one.
+The first command shows the scoped configuration edit. The second performs it. Dependencies are prepared automatically if missing. The installed shortcuts are `prefix+shift+a` (rename the focused pane's agent) and `prefix+shift+s` (preview and confirm syncing explicit pane names to agent names across the current workspace), normally Ctrl+B followed by Shift+A or Shift+S. Installation does not rename an agent or submit input to one. Dependencies (`prompt_toolkit`, `wcwidth`, `regex`, `tomlkit`) come from the hash-locked `requirements.lock`.
 
-An existing matching plugin action is kept, including a user-customized shortcut. Repeated installation adds no duplicate entries and retains the original displaced-binding record. The exact legacy `printf/read/herdr agent rename "$HERDR_ACTIVE_PANE_ID"` popup documented for this project is migrated automatically. Its former binding is saved individually for uninstall.
+An existing matching plugin action is kept, including a user-customized shortcut. Matching is by `type = "plugin_action"` and the exact `command`, not by description, so bindings written by an earlier version (with the old sync description) are kept unchanged and not duplicated. Repeated installation adds no duplicate entries and retains the original displaced-binding record. The exact legacy `printf/read/herdr agent rename "$HERDR_ACTIVE_PANE_ID"` popup documented for this project is migrated automatically. Its former binding is saved individually for uninstall.
 
 An unrelated custom command on an equivalent shortcut stops installation before configuration/registry edits. To explicitly replace the displayed custom binding:
 
@@ -32,6 +32,31 @@ bin/install --replace-conflicts
 ```
 
 For key arrays, only conflicting keys are removed from the former command; its other shortcuts remain active. Conflicts with built-in `[keys]` bindings are reported and must be resolved explicitly. `prefix+A`, `prefix+Shift+a`, and `prefix+shift+a` are equivalent; likewise S.
+
+## Update an existing install
+
+For an install made from an earlier version of this checkout (for example `v0.1.0`):
+
+```bash
+cd /absolute/path/to/herdr-rename-agent
+git pull            # or: git checkout <ref>
+bin/setup           # refreshes .venv for new locked dependencies (regex)
+bin/install --dry-run
+bin/install         # keeps existing bindings, validates and reloads the config
+```
+
+The plugin ID and action IDs are unchanged, so bindings and the recovery record stay valid and no migration is needed. Because the plugin is linked to this checkout, runtime code changes take effect the next time a shortcut runs. Changes to `herdr-plugin.toml` (popup sizes, new entrypoints) need a config reload, which `bin/install` performs; when editing the checkout without running `bin/install`, reload manually (`herdr server reload-config` or the UI's reload action). Without `bin/setup` first, the new dialogs fail to import `regex`.
+
+## Roll back
+
+```bash
+cd /absolute/path/to/herdr-rename-agent
+git checkout v0.1.0
+bin/setup
+bin/install
+```
+
+`v0.1.0` is the last single-pane release. The bindings remain valid. In the sandbox, `v0.1.0` cannot be installed over a registration from a different checkout; roll back in the same checkout as shown. Return with `git checkout master && bin/setup && bin/install`.
 
 ## Uninstall
 

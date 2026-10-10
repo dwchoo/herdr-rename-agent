@@ -1,6 +1,6 @@
 # Verification procedure
 
-Use this checklist for the initial release and after every Herdr update. Record concrete results in [verification-results.md](verification-results.md), with version, date, terminal size, theme, scenario, and evidence paths. A test that was not exercised is **Unverified**. The [compatibility limits](compatibility.md) remain separate from passing behavior tests.
+Use this checklist for each release and after every Herdr update. The current revision (workspace sync and the Herdr-style rename dialog) is verified by the unit suite and the sandbox `next` suite; the v0.1.0 procedures below are kept where they still apply and marked where they do not. Record concrete results in [verification-results.md](verification-results.md), with version, date, terminal size, theme, scenario, and evidence paths. A test that was not exercised is **Unverified**. The [compatibility limits](compatibility.md) remain separate from passing behavior tests.
 
 ## Read-only checks
 
@@ -14,7 +14,7 @@ herdr plugin action list --plugin local.agent-rename
 herdr plugin log list --plugin local.agent-rename
 ```
 
-Confirm the expected version and the required agent, pane, process-info, popup, and notification capabilities. Inspect response envelopes instead of assuming newer versions preserve them. Record both binary and server versions when they differ.
+Confirm the expected version and the required capabilities: `agent.get`, `agent.list`, `agent.rename` (with nullable `name` for `--clear`), `pane.get`, `pane.list` (with `workspace_id`), `pane.process_info`, `plugin.pane.open` (popup, `env`) and `notification.show`. See [capability checks](compatibility.md#capability-checks). Inspect response envelopes instead of assuming newer versions preserve them. Record both binary and server versions when they differ.
 
 ## Automated checks
 
@@ -22,18 +22,18 @@ After `bin/setup`, install the hash-pinned test dependencies and run:
 
 ```bash
 uv pip install --python .venv/bin/python --require-hashes -r requirements-test.lock
-.venv/bin/python -m pytest
+.venv/bin/python -m pytest -q
 ```
 
 Without `uv`, use `.venv/bin/python -m pip install --require-hashes -r requirements-test.lock`. Keep the exact command, result, test count, and any skipped checks in the results file.
 
-Review coverage of frozen invocation context, explicit popup handoff, malformed/unknown JSON, unsupported capabilities, canonical movement, terminal/agent/session/process changes, unchanged status/revision, validation, source/name changes, no-op names, one-write submission locking, literal argv, definite failures, and uncertain-result reconciliation. Verify large launch argv data uses a short pointer, private file validation rejects symlinks/cross-directory pointers/wrong ownership/permissions, successful decode consumes the file, and launch failure cleans it up. Cancellation and invalid inputs must produce zero writes. TUI tests should cover editing, horizontal scroll, focus order, Enter/Esc/Ctrl+C, multiline/Unicode paste, resizing, small-screen cancellation, and terminal mode restoration.
+Review coverage of the editor port (cases derived from `text_editor.rs`), theme resolution, the workspace planner (every row status, session-wide conflicts, duplicate labels), the batch executor (per-row rechecks, one write per row, transport failure stops the queue unless a read confirms, Stop, repeated-start protection, uncertain results), the `--clear` path, rename trimming, frozen invocation context, explicit popup handoff, malformed/unknown JSON, unsupported capabilities, canonical movement, terminal/agent/session/process changes, unchanged status/revision, validation, source/name changes, no-op names, one-write submission locking, literal argv, definite failures, and uncertain-result reconciliation. Verify large launch argv data uses a short pointer (inline limit 48 KiB, private file limit 4 MiB, including a large multi-pane sync plan), private file validation rejects symlinks/cross-directory pointers/wrong ownership/permissions, successful decode consumes the file, and launch failure cleans it up. Cancellation and invalid inputs must produce zero writes. TUI tests should cover editing keys, viewport scrolling, Enter/Esc/Ctrl+C, press-activated mouse on save/clear/cancel and Yes/No/Stop/Close, multiline/Unicode paste, sync table scrolling and column collapse, selection keys, resizing, small-screen messages, and terminal mode restoration (including mouse modes).
 
 Installation tests must cover `bin/install`/`bin/uninstall`, legacy migration, repeated operations, alias/array conflicts, source registration, private scoped records, failure recovery, and selective cleanup after later user edits. Exercise separated `[[keys.command]]` groups, comments, quoting, multiline header lookalikes, CRLF/BOM, file permissions, and detected concurrent edits. A newer unrelated user binding must block only restoration of its occupied shortcut.
 
 ## Isolated Herdr environment
 
-The reproducible integration tool launches a temporary named session and two idle Codex test processes, operates both shortcuts, captures the actual client terminal stream, and removes its test server and temporary directories:
+`tools/verify_herdr.py` and the default (`--suite old`) sandbox run exercise the **v0.1.0** single-pane UI and no longer match the current dialogs; they are historical. The reproducible integration tool launches a temporary named session and two idle Codex test processes, operates both shortcuts, captures the actual client terminal stream, and removes its test server and temporary directories:
 
 ```bash
 .venv/bin/python tools/verify_herdr.py --run
@@ -57,14 +57,16 @@ The real native Codex executable runs with `--no-daemon`, a fresh `CODEX_HOME`, 
 
 Evidence goes to `docs/sandbox/`: actual captures, scenario results, isolation checks, and the run exit code. The original runtime fixture and existing host-session evidence remain unchanged. The wrapper has a four-minute timeout; exiting the PID namespace terminates its test processes, and the temporary checkout is removed. This is a local integration-test sandbox sharing the host kernel and read-only system runtimes, rather than a VM or a certification of malicious-code containment. It does not add an atomic precondition to Herdr's rename API.
 
-#### Next suite (PLAN section 10 scenarios)
+#### Next suite (current revision, PLAN section 10 scenarios)
 
 ```bash
 .venv/bin/python tools/verify_sandbox.py --run --suite next [--only S1,R03,T]   # docs/sandbox-next/
 .venv/bin/python tools/verify_sandbox.py --run --suite all                      # old suite + next suite
 ```
 
-`--suite old` (the default) keeps the original scenarios and installer lifecycle and writes `docs/sandbox/`; it asserts the pre-revision UI (single-pane sync), so it is only meaningful against the `d5cd79f` runtime. `--suite next` writes `docs/sandbox-next/` (`actual-results.json`, `captures/*.txt|png`, `isolation.json`, `run.json`). Scenarios are defined in `tools/next_suite.py` on top of `tools/herdr_lab.py` (layout, agents, popup frame detection by title, keys, bracketed paste, SGR mouse at popup-relative or client coordinates). Each scenario resets labels/names, then reports `pass`, `fail` (planned behavior not observed), `error` (harness/exception) or `skip` (not observable); failures also save the screen and the plugin log. `--only` takes ID prefixes. Fixture: workspace 1 tab 1 has agents a, b and agent-less c; tab 2 has agents d, e and agent-less g; workspace 2 has control agent f. Added scenarios: S23-S25 (80-column client, narrow client resize message, resize while the sync popup is open), S26/S27 (stale preview: changed label, closed pane, renamed agent, cleared label), S28/S29 (Stop during application and Stop latched with Yes; Ctrl+C is used because Herdr holds a lone Esc for over 170 ms, and rows take about 20 ms each, so S28 tries several delays and skips if none lands inside the batch), R13 (resize while the rename popup is open) and L01-L08 (installer lifecycle on the current runtime in a separate un-installed session, including a rollback cycle with the `v0.1.0` tree that the wrapper exports with `git archive` to `legacy-v0.1.0/` inside the sandbox checkout; v0.1.0 cannot be installed over a registration from another checkout, so the cycle is new uninstall, v0.1.0 install/uninstall, new install). Captures are TXT except for key UI states (PNG). Limits: Herdr 0.9.3's headless client draws no notification toast, so notification wording is unobservable; Herdr closes a popup when the workspace focus changes; repeated-batch checks compare agent `revision` deltas rather than counting API writes.
+`--suite old` (the default) keeps the original scenarios and installer lifecycle and writes `docs/sandbox/`; it asserts the pre-revision UI (single-pane sync), so it is only meaningful against the `d5cd79f` (v0.1.0) runtime. `--suite next` writes `docs/sandbox-next/` (`actual-results.json`, `captures/*.txt|png`, `isolation.json`, `run.json`). Scenarios are defined in `tools/next_suite.py` on top of `tools/herdr_lab.py` (layout, agents, popup frame detection by title, keys, bracketed paste, SGR mouse at popup-relative or client coordinates). Each scenario resets labels/names, then reports `pass`, `fail` (planned behavior not observed), `error` (harness/exception) or `skip` (not observable); failures also save the screen and the plugin log. `--only` takes ID prefixes. Fixture: workspace 1 tab 1 has agents a, b and agent-less c; tab 2 has agents d, e and agent-less g; workspace 2 has control agent f. Added scenarios: S23-S25 (80-column client, narrow client resize message, resize while the sync popup is open), S26/S27 (stale preview: changed label, closed pane, renamed agent, cleared label), S28/S29 (Stop during application and Stop latched with Yes; Ctrl+C is used because Herdr holds a lone Esc for over 170 ms, and rows take about 20 ms each, so S28 tries several delays and skips if none lands inside the batch), R13 (resize while the rename popup is open) and L01-L08 (installer lifecycle on the current runtime in a separate un-installed session, including a rollback cycle with the `v0.1.0` tree that the wrapper exports with `git archive` to `legacy-v0.1.0/` inside the sandbox checkout; v0.1.0 cannot be installed over a registration from another checkout, so the cycle is new uninstall, v0.1.0 install/uninstall, new install). Captures are TXT except for key UI states (PNG). Limits: Herdr 0.9.3's headless client draws no notification toast, so notification wording is unobservable; Herdr closes a popup when the workspace focus changes; repeated-batch checks compare agent `revision` deltas rather than counting API writes.
+
+Scenario series: S01-S29 workspace sync (scope, row mix, conflicts, selection keys and mouse, repeated batch, completion, small/narrow/resized clients, stale previews, Stop), R01-R13 rename (save, trim, clear, `--clear`, cancel, mouse, paste, duplicate, small terminal, resize), T01-T02 theme captures with palette-color checks (default and Dracula), L01-L08 installer lifecycle and rollback, H01 harness self-test for notification toasts. The last full run (2026-10-11): 49 pass, 0 fail, 0 error, 2 skip (H01, S07: no toast is observable in the headless client). Results: [sandbox-next/actual-results.json](sandbox-next/actual-results.json).
 
 Use a separate test environment and a dedicated pane/agent; do not rename the active development agent. `HERDR_CONFIG_PATH` isolates only the config file. Herdr 0.9.3's plugin registry and session directories use `XDG_CONFIG_HOME`, and plugin state uses `XDG_STATE_HOME`. Set both to fresh test directories, choose a named test session, and retain the normal HOME value. [Config/state path implementation](https://github.com/herdrdev/herdr/blob/v0.9.3/src/config/io.rs#L30)
 
@@ -93,20 +95,32 @@ Capture the resolved config, plugin list, and socket paths before proceeding. Ev
 
 ## Actual UI and behavior checklist
 
-At one fixed terminal size and theme, capture native `rename_pane`, Rename agent, and Sync agent name. Store captures in `docs/captures/` and note outer/inner dimensions, spacing, colors, borders, and button differences. Source review or standalone prompt_toolkit screenshots do not complete this comparison.
+Herdr 0.9.3 has no native agent rename overlay, so the comparison reference is the native rename pane overlay (see [r1-source-findings](r1-source-findings.md)). At one fixed terminal size and theme, capture native `rename_pane`, Rename agent and Sync agent names, and note dimensions, labels, colors and differences. Source review or standalone prompt_toolkit screenshots do not complete this comparison. The `next` suite automates the items below; do them by hand only for a new Herdr version or theme.
 
-- Open both shortcuts on a test agent; verify the action captures the original pane despite later focus changes.
-- Verify existing/unnamed agent display, exact pane label display, and No as the initial sync focus. Opening sync must send zero writes.
-- Exercise cursor movement, Home/End, deletion, long text, Tab/Shift+Tab, Enter, Esc, Ctrl+C, valid paste, newline paste, Unicode, invalid names, and duplicate names.
-- Apply a valid name once. Confirm only the selected agent name changes; its pane label, work, and pending terminal input remain intact.
-- Confirm Yes copies exactly the pane label. Confirm No/Esc/Ctrl+C produce no rename. Confirm matching names complete without a write.
-- While a dialog is open, separately change the test pane label or agent name. Sync must refuse the stale confirmation and require reopening.
-- Exit, replace, or move only the test target. Confirm detected identity/location changes produce an error and never redirect the rename. Record any replacement case public data cannot distinguish.
-- Exercise definite transport/API failures and explicit retry. After an uncertain write, inspect the current name; a matching desired name must reconcile without a second write, and a differing value must require reopening.
-- Repeat affirmative input during an in-flight request. Confirm exactly one write.
-- Resize normally and to a tiny area. Affirmative controls must be disabled when they cannot fit, input/focus preserved where possible, and cancellation available.
-- After success, cancellation, and exceptions, confirm original focus, cursor, echo, input modes, and paste behavior recover. Confirm a successful sync notification is shown once when notification delivery is available.
+Rename:
+
+- Opens with the current explicit agent name and the cursor at the end; no replace-on-type; Tab does nothing.
+- Cursor and kill keys, long text, Unicode, valid paste, newline and control-character paste (shown as U+FFFD, rejected, nothing written).
+- Enter saves with trimming; Ctrl+C clears the field only; saving an empty field runs `--clear`; Esc cancels. Only the selected agent's name changes; its pane name, work and pending terminal input remain.
+- Mouse: press on save, clear, cancel; press elsewhere cancels.
+- Duplicate name (held anywhere in the session) shows an error on the status row and keeps the input.
+- Moved, exited or replaced targets are rejected and never redirected.
+
+Sync:
+
+- Panes across several tabs, another workspace unchanged; focus change after invocation does not retarget.
+- Mixed rows, unnamed agent with a named pane, duplicate and externally held names, invalid labels, no eligible rows (notification, no popup), conflict-only (information popup).
+- Opening sends zero writes; default No plus Enter, N, Esc and Ctrl+C write nothing; Tab/Left/Right plus Enter, Y and a mouse press on Yes apply once.
+- Repeated Enter/Y/clicks and double clicks cannot start a second batch; Stop leaves later rows not attempted.
+- Pane or agent name changed, pane closed, or label cleared after the preview: the row is skipped with a reason.
+- Small, narrow and resized clients: controls reachable, or a resize message with Esc to cancel.
+
+General:
+
+- Resize to a tiny area; confirm no write is possible when controls cannot fit.
+- After success, cancellation and exceptions, confirm original focus, cursor, echo, input modes, mouse reporting and paste behavior recover.
+- Exercise definite transport/API failures; after an uncertain write, a retry reads first and does not write twice.
 
 ## Release decision
 
-Passing unit/TUI checks and a working popup establish implementation behavior, not atomic identity protection. Mark actual UI scenarios independently and list any unverified item or remaining visual difference. The release gate requires installation/removal preservation, actual UI evidence, and transparent limitations. The strict replacement-identity criterion remains unmet while the public API lacks a verified immutable identity plus an atomic rename precondition.
+Passing unit/TUI checks and a working popup establish implementation behavior, not atomic identity protection. Mark actual UI scenarios independently and list any unverified item or remaining visual difference. The release gate requires installation/removal preservation, actual UI evidence, and transparent limitations. The sandbox run does not cover deployment: the user's live Herdr has not been updated. The strict replacement-identity criterion remains unmet while the public API lacks a verified immutable identity plus an atomic rename precondition.

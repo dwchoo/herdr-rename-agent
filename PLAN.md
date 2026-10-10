@@ -1,6 +1,6 @@
 # Herdr Agent Rename — Python Revision Plan
 
-Status: Planning only, 2026-10-10. Implementation has not started. The installed plugin remains the Python runtime at commit `d5cd79f`. This document replaces the earlier Rust rewrite plan; see §12 for why Python was chosen.
+Status: implemented and verified, 2026-10-11 (HEAD `f46565a`), in the disposable sandbox only. Not deployed to the user's live Herdr environment: the installed plugin there is still the `v0.1.0` runtime (`d5cd79f`) until the user authorizes P4's last step. Results: [docs/verification-results.md](docs/verification-results.md). This document replaced the earlier Rust rewrite plan; see §12 for why Python was chosen. Sections 1 and 3-8 are the original plan; where R1 changed it, the text below is updated and §2 and §13 record the differences.
 
 ## 1. Objective and decisions
 
@@ -8,12 +8,12 @@ Keep the existing Python plugin and revise it to:
 
 1. Fix the reported sync Yes failure.
 2. Synchronize agent names across every pane in the invoking workspace, skipping panes without an explicit name.
-3. Make the rename dialog behave and look as close to Herdr's native agent rename overlay as the public plugin boundary permits.
+3. Make the rename dialog behave and look as close to Herdr's rename overlay as the public plugin boundary permits. (R1: Herdr 0.9.3 has no native agent rename overlay; the pane rename overlay is the reference.)
 4. Stay a personal plugin, installed from a local checkout. No public release or Herdr plugin registry distribution.
 
 | Shortcut | Action ID | Planned behavior |
 | --- | --- | --- |
-| `prefix+shift+a` | `local.agent-rename.open` | Native-style agent name editor with save, clear, and cancel. |
+| `prefix+shift+a` | `local.agent-rename.open` | Agent name editor styled after Herdr's rename overlay, with save, clear, and cancel. |
 | `prefix+shift+s` | `local.agent-rename.sync` | Confirm one batch that copies explicit pane labels into agent names across all panes in the current workspace, including other tabs. |
 
 The plugin ID stays `local.agent-rename`, so existing bindings and recovery records remain valid.
@@ -41,52 +41,49 @@ Confirmed behavior:
 
 Dropped with the personal-use scope: GitHub-managed install support and key-management plugin actions (former D2), and a public plugin ID with migration (former D4).
 
-Implementation begins only after the user asks to proceed.
 
-## 2. Current state and investigation evidence
+## 2. Baseline, Herdr 0.9.3 facts and R1 results
 
-The plugin is installed and enabled in the user's Herdr 0.9.3 environment. Checkout: `/home/dwchoo/herdr-rename-agent`. Config: `/home/dwchoo/.config/herdr/config.toml` (theme `dracula`, `auto_switch = false`). Existing config restoration metadata must be retained.
+Baseline before this revision (`v0.1.0`, `d5cd79f`): 225 Python tests, 42 sandbox checks across 30 scenarios plus 8 isolation checks. It synchronized only the invoking pane. The reported "Yes does not work" was reproduced in R1 (§5 of `docs/r1-live-findings.md`): No was focused by default; Left/Right scrolled the name text instead of switching buttons; there was no `y` binding; `mouse_support=False` meant Herdr never forwarded clicks. Only Tab then Enter reached Yes. No hidden precondition disabled Yes.
 
-Historical verification for `d5cd79f`: 225 Python tests pass (rechecked 2026-10-10), including 41 installer tests. The sandbox Herdr run passed 42 checks across 30 scenarios plus 8 isolation checks.
+The user's config at planning time: `/home/dwchoo/.config/herdr/config.toml` (theme `dracula`, `auto_switch = false`). Existing config restoration metadata must be retained. Nothing in the user's environment has been changed by this revision.
 
-The installed sync action handles only the invoking pane. The current sync UI has two confirmed interaction gaps:
-
-- Mouse handling is disabled, so clicking Yes cannot activate it.
-- Left/Right scroll the name text instead of changing the selected button. No is selected by default. The previous successful E2E used Tab then Enter.
-
-The exact gesture and state behind the user's report have not been reproduced. Reproduce it before replacing the UI. Also check whether Yes is disabled by invalid labels, target checks, or terminal geometry.
-
-Herdr 0.9.3 facts verified so far:
+Herdr 0.9.3 facts (R1 evidence in [docs/r1-source-findings.md](docs/r1-source-findings.md) and [docs/r1-live-findings.md](docs/r1-live-findings.md)):
 
 | Topic | Finding |
 | --- | --- |
 | `herdr plugin link` | Registers the local checkout. Does not run build commands, so `bin/install` prepares `.venv` itself. |
-| Popup size | Manifest `width`/`height` accept cell counts or percentages such as `"80%"`. Values below the minimum are clamped. The installed CLI's `plugin pane open` has no size flag. |
-| Popup input | A popup receives all terminal input, including Escape. Mouse report delivery is not documented. |
-| `herdr agent rename <TARGET> <NAME>\|--clear` | `--clear` exists. |
-| `herdr pane list --workspace <ID>`, `herdr agent list` | Exist. Tab coverage and fields are unverified. |
-| Startup | Importing the runtime modules takes about 0.13 s per Python process. A shortcut starts two processes (action, dialog). |
+| Native agent rename overlay | **None exists.** The client overlay has only new workspace/tab and rename workspace/tab/pane targets. Agent rename is API/CLI only. The rename pane overlay (same renderer) is the reference. |
+| Rename overlay layout | 56x7 outer, 54x5 content: title row 0, blank, input row 2, buttons row 3, row 4 blank. Buttons ` ↵ save ` (8), ` ^c clear ` (10), ` esc cancel ` (12), 2-cell gaps, centered. Initial text is the current explicit label, cursor at end. No replace-on-type for renames (only new workspace/tab). No error display: errors are not surfaced. |
+| Rename overlay input | Enter saves (trimmed). Esc cancels. Ctrl+C and Super+Backspace clear the field only. Save with empty pane input sends a clear; workspace/tab send nothing. No keyboard button focus. |
+| Rename overlay mouse | Activation on press, left button only. Save and clear rects act; a click anywhere else, including the cancel button and outside the panel, cancels. |
+| Popup sizing | Manifest `width`/`height` are outer cells including the border, or percentages of the pane area (right of the sidebar). PTY = outer - 3 columns and - 2 rows. A 57x7 popup gives the 54x5 content area. Popups are centered in the pane area. Minimum clamp 6x4. |
+| Popup input and mouse | A popup receives all terminal input, including Escape. Mouse reports are delivered, translated to popup-relative SGR coordinates, only if the popup enables mouse reporting. Clicks outside the popup are not delivered. |
+| `pane list` | `pane list --workspace <ID>` returns every pane of every tab. The `label` key holds the explicit pane name and is absent when unnamed. Entries have no agent name. Plugin popups do not appear. |
+| `agent list` / `agent get` | `agent list` is session-wide and only covers agent panes; `name` is absent for an unnamed agent. One agent per pane; join by `pane_id`. `agent get` on a pane without an agent exits 1. |
+| Agent names | Rule `[a-z][a-z0-9_-]{0,31}`. Unique across the whole session (all workspaces and tabs). Self-rename is a no-op success. Clearing a name does not free it until the holder is cleared. |
+| `herdr agent rename <TARGET> <NAME>\|--clear` | `--clear` removes the explicit name and is idempotent. It fails with `agent_not_found` if no agent is running. Names can also drop silently when the agent changes. |
+| Rename API | No expected-identity precondition (no compare-and-set). |
+| Theme | Default theme is `catppuccin`. `auto_switch = true` depends on the host terminal appearance, which a plugin cannot read. |
+| Startup | Importing the runtime modules takes about 0.13 s per Python process. A shortcut starts two processes (action, dialog). v0.1.0 dialog content appeared in about 0.26 s. |
 
 The official Herdr v0.9.3 source was inspected at commit `7b116c05bfda646af39d2524c54e70c751f57ee8`:
 
 | Source | Relevant behavior |
 | --- | --- |
-| [`src/client/shell/overlays.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/overlays.rs#L630) | Native rename renderer; 56×7 outer frame, title/input/button placement, centered button dimensions, styles. |
-| [`src/client/shell/text_editor.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/text_editor.rs) | Editor model to port (details below). |
+| [`src/client/shell/overlays.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/overlays.rs#L630) | Rename overlay renderer; 56x7 outer frame, title/input/button placement, centered button dimensions, styles. |
+| [`src/client/shell/text_editor.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/text_editor.rs) | Editor model ported to `editor.py` (details below). |
 | [`src/client/shell/overlay_input.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/overlay_input.rs#L891) | Overlay key routing. |
-| [`src/client/shell/mouse.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/mouse.rs#L1684) | Mouse activation of native save/clear/cancel buttons. |
-| [`src/app/state.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/app/state.rs) | Native palette tokens, including Dracula. |
+| [`src/client/shell/mouse.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/client/shell/mouse.rs#L1684) | Mouse activation of the overlay buttons. |
+| [`src/app/state.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/app/state.rs) | Palette tokens of the built-in themes. |
 | [`src/app/agents.rs`](https://github.com/herdrdev/herdr/blob/v0.9.3/src/app/agents.rs#L90) | Agent name validation, uniqueness, and explicit-name removal. |
 
-Herdr's native editor, the porting reference:
+Herdr's editor, the porting reference:
 
 - Grapheme-cluster cursor movement. Words are runs of the same class: whitespace, alphanumeric/`_`, or other. Backward word movement does not skip whitespace first; forward word movement does.
 - Keys: Left/Ctrl+B, Right/Ctrl+F, Home/Ctrl+A, End/Ctrl+E, Alt+B, Alt+F, Backspace/Ctrl+H, Delete/Ctrl+D, Ctrl+U and Ctrl+K (kill to start/end), Ctrl+W, Ctrl/Alt+Backspace, and Alt+D (kill word), Ctrl+Y (yank). There is a single local kill buffer, not the system clipboard.
-- Insert/paste: CRLF/CR/LF/Tab become one space and other control characters are dropped. An optional replace-on-type mode makes the first insert replace the whole text.
+- Insert/paste: CRLF/CR/LF/Tab become one space and other control characters are dropped. The replace-on-type mode (first insert replaces the whole text) exists but no rename overlay uses it for a prefilled value.
 - Viewport: at most `width - 1` cells precede the cursor; the remaining cells show the text after it. Width comes from `unicode-width`.
-- Overlay routing: Enter saves, Esc cancels, Ctrl+C and Super+Backspace clear the input. The overlay has no keyboard button focus. Save, clear, and cancel buttons are mouse targets.
-
-Still to verify against the agent rename overlay itself: replace-on-type at open, trimming, exact button labels/positions, and colors.
 
 ## 3. Architecture
 
@@ -128,18 +125,18 @@ herdr-rename-agent/
 
 ## 4. Native UI parity and limits
 
-Rename dialog baseline (native overlay):
+Rename dialog (reference: Herdr's rename pane overlay, as implemented in `ui/rename.py`):
 
-- Outer size 56×7; inner content 54×5. Title at row 0, input at row 2, centered buttons at row 3.
-- Button widths: save 8, clear 10, cancel 12 cells, with 2-cell gaps.
-- Match panel background, input surface, accent primary button, text, and bold styling from the active theme's tokens.
-- Input starts with the current explicit agent name, cursor at the end, with replace-on-type matching native behavior (to be verified).
-- No keyboard button focus, matching native. Enter, Ctrl+C, and Esc act directly. Buttons respond to mouse clicks (D6).
-- Errors keep the entered text and usable controls. Use a deliberate expanded error layout rather than clipping.
+- Popup 57x7 manifest size gives a 54x5 content area. Title `rename agent` at row 0, input at row 2, centered buttons at row 3, status/error at row 4.
+- Button widths: save 8, clear 10, cancel 12 cells, 2-cell gaps, labels ` ↵ save `, ` ^c clear `, ` esc cancel `.
+- Panel background, input surface, accent primary button, text, and bold styling come from the active theme's tokens.
+- Input starts with the current explicit agent name, cursor at the end. There is no replace-on-type (the native rename overlays do not use it).
+- No keyboard button focus, matching native. Enter, Ctrl+C, and Esc act directly. Mouse acts on press: save and clear buttons act, any other cell cancels (D6; delivered because the popup enables mouse reporting).
+- Errors keep the entered text and usable controls and are shown on content row 4 (the native overlay shows none).
 
 Sync dialog (custom, built from the same palette and button rendering):
 
-- Popup `width = "80%"`, `height = "70%"`, tuned after captures.
+- Popup `width = "80%"`, `height = "70%"` (kept after captures). Below a 40x10 PTY it shows a resize message.
 - Scrollable table with tab, pane, current agent name, proposed name, and status. Totals line. Yes/No and hints stay visible regardless of scrolling.
 - On narrow terminals, collapse the Tab column first, then the Pane column. A selected row can show full long names.
 - During application the status column shows progress. Afterward it shows outcomes, with a single Close button.
@@ -159,15 +156,15 @@ Sync dialog (custom, built from the same palette and button rendering):
  ↑↓ PgUp/PgDn scroll · ←→/Tab select · Y/N · Enter · Esc
 ```
 
-Theme: read `[theme]` from the active config and map built-in theme names and custom tokens to Herdr's palette (`src/app/state.rs`). Dracula is required. The default theme is the second acceptance case. If `auto_switch` or terminal-dependent state cannot be resolved publicly, document the fallback.
+Theme: read `[theme]` from the active config and map built-in theme names and custom tokens to Herdr's palette (`src/app/state.rs`). Dracula and the default (`catppuccin`) theme were the acceptance cases. `auto_switch = true` depends on terminal state that is not available publicly; the dark variant is assumed.
 
 Public plugin boundary differences already observed in 0.9.3, which no runtime language can remove:
 
 - Herdr draws the popup's outer border and the manifest entrypoint title.
-- A 56-cell popup supplies a 53-cell-wide PTY because of a reserved gutter.
+- The popup PTY is the outer size minus 3 columns and 2 rows (reserved gutter), so a 57x7 manifest size is needed for the 54x5 content area.
 - Popups center within the pane surface; the native overlay centers within the client surface.
 
-Compare a 56×7 popup and adjusted sizes, avoid duplicate frames/titles, and lock dimensions from real captures. Parity acceptance: side-by-side captures in the same theme and size match in colors, text, and button positions, apart from the listed boundary differences.
+Dimensions were locked from live measurements (57x7 rename popup, `"80%"`/`"70%"` sync popup). Parity acceptance: captures in the same theme and size match in colors, text, and button positions, apart from the listed boundary differences. Checked for the default and Dracula themes by palette-color assertions on the plugin's own captures (T01, T02), against the ported palettes; not by a side-by-side native capture.
 
 Terminal cleanup: restore cursor, raw mode, alternate screen, bracketed paste, and mouse modes on success, cancellation, and errors.
 
@@ -245,19 +242,19 @@ Installation is unchanged: `bin/install` / `bin/uninstall` from this checkout, u
 - `herdr plugin install` from GitHub and the Herdr plugin registry are out of scope.
 - Add LICENSE (Apache-2.0) and THIRD_PARTY_NOTICES.md for the ported Herdr logic.
 
-Rollback: tag `d5cd79f` as `v0.1.0`. Check out the tag and run `bin/install`. Because IDs are unchanged, no binding migration is needed.
+Rollback: `d5cd79f` is tagged `v0.1.0`. Check out the tag, run `bin/setup` and `bin/install`. Because IDs are unchanged, no binding migration is needed. The sandbox rollback cycle (L05) passed.
 
 Keep the current installation working until the new version passes all gates. Develop and test in the disposable sandbox, and change the user's environment only after the user authorizes deployment.
 
 ## 9. Work stages and acceptance gates
 
-| Stage | Work | Evidence before moving on |
+| Stage | Work | Status and evidence |
 | --- | --- | --- |
-| R1: Investigate | In the sandbox: reproduce the Yes failure; test mouse delivery to popups; verify `pane list` tab coverage and fields, `agent list`, name uniqueness scope, pane↔agent 1:1; capture the native agent rename overlay (Dracula and default) and confirm replace-on-type, trimming, buttons; check percentage popup sizes. | Recorded findings, new multi-pane fixtures, plan updated with the results. |
-| P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | Unit tests for planner, conflicts, executor; real-popup keyboard/mouse Yes/No; Yes regression. |
-| P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | Editor tests derived from `text_editor.rs`; side-by-side captures meeting the parity criterion. |
-| P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | Existing installer tests pass; sandbox install → use → uninstall → reinstall with the new dependency. |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | All matrix scenarios pass; user authorizes deployment. |
+| R1: Investigate | Reproduce the Yes failure; mouse delivery; pane/agent list coverage; name uniqueness; replace-on-type, trimming and buttons; percentage popup sizes. | **Done.** [r1-source-findings](docs/r1-source-findings.md), [r1-live-findings](docs/r1-live-findings.md), `tools/probe_r1.py`, fixtures. The native agent rename overlay does not exist, so the pane rename overlay is the reference, taken from source review. No side-by-side capture against the native overlay was made in this revision. |
+| P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S29 (keyboard and mouse Yes/No, Yes regression S11-S17). |
+| P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T02 captures. |
+| P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L08. |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 49 pass, 2 skip (H01, S07: no toast observable), unit suite 464 passed; `v0.1.0` tag exists. **Pending:** updating the user's environment (`bin/setup`, `bin/install`, reload), which needs the user's authorization. |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 
@@ -280,9 +277,9 @@ Testing layers:
 - Python unit/behavior tests (existing suite extended).
 - prompt_toolkit TUI tests through a real PTY (existing approach).
 - Real Herdr PTY E2E in the bubblewrap harness, extended to mouse, `--clear`, and multi-tab sync with another workspace as an unchanged control. Never rename the user's development agent in a test.
-- Side-by-side native/plugin captures in the same theme and size.
+- Side-by-side native/plugin captures in the same theme and size (not performed in this revision; see §9 R1).
 
-Historical 225/42/8 counts are baseline only. Record new results separately.
+Historical 225/42/8 counts are baseline only; current results are recorded separately in [docs/verification-results.md](docs/verification-results.md). Matrix scenarios not observable in Herdr 0.9.3 (notification wording) are listed as skips there.
 
 ## 11. Deliverables
 
@@ -294,4 +291,16 @@ A Rust rewrite was planned earlier the same day and rejected. Its benefits were 
 
 Rust development tools were installed while the Rust plan was active: rustup in `~/.cargo`/`~/.rustup` with `~/.cargo/env` sourced from `~/.profile` and `~/.bashrc`. They are user-level and kept. The checkout-level Rust artifacts from that setup (`rust-toolchain.toml`, `docs/development.md`, the `target/` line in `.gitignore`, and the Rust note in README.md) were removed on 2026-10-10.
 
-This turn changes the plan only. No code change, build, installation update, or agent rename is authorized by it.
+## 13. Implementation assumptions
+
+Decisions made while implementing, where the plan was silent or R1 changed the facts:
+
+- Enter and Space are ignored while a sync batch runs, so a repeated key cannot trigger Stop by accident. Stop, Esc and Ctrl+C request cancellation.
+- `y`/`Y` triggers Yes directly in confirm mode, as the plan lists. Keys typed before the popup exists go to the underlying pane, not the popup.
+- The sync popup shows a resize message when its PTY is smaller than 40x10 (about a 50-column client at `"80%"`); the rename dialog needs 40x5.
+- A transport failure during a write stops the queue unless a follow-up read confirms the write.
+- Per-pane lookup anomalies become `LOOKUP_FAILED` rows; only server-wide failures abort the preview.
+- `auto_switch` themes assume dark, because the host appearance is not available to a plugin.
+- The rename title reads `rename agent`.
+- Rename shows errors on content row 4; the native overlay has no error display.
+- The keybinding description for sync is now "Sync agent names from pane names". The installer matches bindings by `type` and exact `command`, so existing bindings with the old description are kept as they are.

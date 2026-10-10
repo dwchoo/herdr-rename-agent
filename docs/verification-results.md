@@ -1,8 +1,72 @@
 # Verification results
 
-Implementation is available for the Linux/Herdr 0.9.3 baseline. Automated checks and the recorded core actual UI scenarios pass. The full release gate remains **incomplete**: the public API cannot establish strict atomic agent identity, and the additional real-world scenarios listed below are unverified.
+This file has two parts: the current revision (workspace sync and the Herdr-style rename dialog; section dated 2026-10-11) and, below it, the historical v0.1.0 results (2026-10-10), which describe the old single-pane UI and are kept for reference only.
+
+# Current revision (HEAD f46565a), 2026-10-11
+
+Status: implemented and verified in an isolated sandbox. It has **not** been installed into or tested against the user's live Herdr environment. The strict identity criterion remains unmet (below).
 
 ## Environment and commands
+
+Recorded 2026-10-11, Asia/Seoul:
+
+| Item | Observed value |
+| --- | --- |
+| Host | Linux 7.2.9-2-t2-noble, x86_64 |
+| Herdr binary and isolated server | 0.9.3, public API protocol 22 |
+| Python | 3.14.7; declared prerequisite is 3.11+ |
+| Test agents | Idle Codex 0.162.1 processes (`--no-daemon`, test-only no-auth provider), no model prompt submitted |
+| Terminal | PTY `xterm-256color`, truecolor; 100 x 32 unless a scenario states another size (40 x 10, 50 x 20, 60 x 16, 80 x 24) |
+| Themes | catppuccin (default) and Dracula |
+| Sandbox | bubblewrap, separate mount/PID/network namespaces, empty HOME, loopback only, read-only runtimes, disposable checkout; 8 isolation checks recorded in [isolation.json](sandbox-next/isolation.json) |
+
+```text
+.venv/bin/python -m pytest -q
+464 passed
+
+.venv/bin/python tools/verify_sandbox.py --run --suite next
+49 pass, 0 fail, 0 error, 2 skip (51 scenarios); exit code 0
+```
+
+Raw data: [actual-results.json](sandbox-next/actual-results.json), [run.json](sandbox-next/run.json), [isolation.json](sandbox-next/isolation.json), captures in [sandbox-next/captures/](sandbox-next/captures/) (TXT, key states also PNG). The R1 investigation that fixed the target behavior is in [r1-source-findings](r1-source-findings.md) and [r1-live-findings](r1-live-findings.md) (`tools/probe_r1.py --run`).
+
+The unit suite covers the editor port, theme resolution, workspace planner and executor, rename controller (trim, `--clear`, reconciliation), client capability checks, large-handoff files (4 MiB bound), installer lifecycle (41 tests) and prompt_toolkit dialogs driven through pseudo-terminals.
+
+## Scenario summary by series
+
+| Series | Count | Result | What it covers |
+| --- | --- | --- | --- |
+| S (sync) | 27 | 26 pass, 1 skip (S07) | S01-S06: scope across tabs with another workspace unchanged, mixed rows, unnamed agent, duplicate labels, name held in another workspace, conflict-only information popup. S07: no eligible rows, no popup, no writes. S10-S22: default No, Tab/Left/Right/Y/N/Esc/Ctrl+C, mouse Yes/No, repeated Enter/Y and double click, completion table with Close, focus change, 60 x 16 client. S23-S25: 80-column layout, 50-column resize message, resize while open. S26-S27: stale previews (changed label, closed pane, renamed agent, cleared label). S28-S29: Stop during a batch and Stop latched with Yes. |
+| R (rename) | 13 | 13 pass | Save, trim, Ctrl+C clear-only, empty save runs `--clear`, Esc, mouse save/clear/cancel, click elsewhere cancels, invalid paste, name held by another agent, 40 x 10 terminal, resize while open. |
+| T (theme) | 2 | 2 pass | Default and Dracula captures with palette-color checks. |
+| L (lifecycle) | 8 | 8 pass | Dry-run, fresh install with legacy migration, shortcuts open the new dialogs, repeated install, rollback cycle with `v0.1.0` (new, v0.1.0, new), later user edits survive uninstall, repeated uninstall, retained recovery record. |
+| H (harness) | 1 | 1 skip (H01) | Self-test that a notification toast is observable. |
+
+Skips, with reasons from the run:
+
+- **H01** and **S07**: Herdr 0.9.3's headless client draws no notification toast, so the notification wording ("All agent names already match their pane names.") cannot be asserted. S07 verifies only that no popup opens and nothing is written.
+
+## Limitations and unverified items
+
+- **Strict identity criterion: unmet.** Herdr's `agent.rename` has no expected-identity or version precondition, so a race between the final read and each write remains, repeated per row in a batch. Revalidation is not a compare-and-set. See [compatibility](compatibility.md#identity-coverage).
+- Notification delivery and wording are unobserved (H01/S07 skips).
+- The in-progress screen of a running batch was not captured. S28/S29 verify Stop through outcomes (later rows not attempted, in-flight row reconciled); S28 tries several Stop delays to land inside the batch and would skip if none did (it passed).
+- Repeated-batch checks compare agent `revision` deltas rather than counting API writes (counted precisely only in unit tests).
+- Mouse works only where Herdr forwards it to the popup (when the popup enables mouse reporting). Only left press and wheel were exercised; right/middle/drag/motion and border clicks were not.
+- Herdr closes a popup when the workspace focus changes; S21 is written to skip in that case (it passed, so the popup survived).
+- Only the default and Dracula themes, 100 x 32 plus the listed sizes, and one outer terminal were captured. `auto_switch = true` assumes dark and was not exercised.
+- Idle Codex agents only; behavior with working agents or other agent kinds, and `--clear` on real Claude agents, is unverified. Timeout or disconnect after a mutation was covered by unit tests, not inside real Herdr.
+- Popup-open latency was measured only for the v0.1.0 runtime (about 0.26 s to a drawn dialog, [r1-live-findings](r1-live-findings.md#6-popup-open-latency-current-plugin)); no figure is recorded for the current runtime.
+- Python 3.14.7 only. The `python3 -m venv` fallback could not run on this host (no `ensurepip`); the `uv` path was used. Newer Herdr versions need their own checks.
+- Deployment to the user's live environment (`bin/setup`, `bin/install`, config reload) is pending the user's authorization; no live agent was renamed or touched.
+
+---
+
+# Historical: v0.1.0 results (2026-10-10, single-pane runtime at `d5cd79f`)
+
+The rest of this file records the previous release. Its commands (`tools/verify_herdr.py`, `verify_sandbox.py --run` with the default old suite) and UI descriptions (Apply/Cancel, per-pane sync, no clear action) do not describe the current dialogs.
+
+## Environment and commands (v0.1.0)
 
 Recorded on 2026-10-10, Asia/Seoul:
 
