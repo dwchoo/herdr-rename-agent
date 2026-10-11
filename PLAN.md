@@ -1,12 +1,12 @@
 # Herdr Agent Rename — Python Revision Plan
 
-Status: implemented and verified, 2026-10-11 (HEAD `b9c946c`, version 0.2.0), in the disposable sandbox only: 464 unit tests and 104 of 104 sandbox `next` scenarios pass (0 fail, 0 error, 0 skip). `bin/install` (deployment) is pending the user's authorization; see Deployment state below. Results: [docs/verification-results.md](docs/verification-results.md). This document replaced the earlier Rust rewrite plan; see §12 for why Python was chosen. Sections 1 and 3-8 are the original plan; where R1 changed it, the text below is updated and §2 and §13 record the differences.
+Status: implemented and verified, 2026-10-11 (HEAD `b9c946c`, version 0.2.0), in the disposable sandbox only: 464 unit tests and 104 of 104 sandbox `next` scenarios pass (0 fail, 0 error, 0 skip). Deployed to the user's live Herdr on 2026-10-11 (`bin/install`); see Deployment state below. Results: [docs/verification-results.md](docs/verification-results.md). This document replaced the earlier Rust rewrite plan; see §12 for why Python was chosen. Sections 1 and 3-8 are the original plan; where R1 changed it, the text below is updated and §2 and §13 record the differences.
 
 ## Deployment state
 
-- The user's live Herdr has this checkout linked (`herdr plugin list` shows `local.agent-rename` pointing to `/home/dwchoo/herdr-rename-agent`). The runtime Python code at HEAD therefore already runs the next time a shortcut is pressed. Python dependencies are refreshed by `bin/setup`/`bin/install`, which has not been run for 0.2.0.
-- Manifest changes (rename popup 57x7, sync popup `"80%"` x `"70%"`, new action descriptions) take effect only after a config reload, which `bin/install` performs.
-- The live config file was not modified during development. `bin/install` (bindings, validation, reload) is pending the user's authorization.
+- The user's live Herdr has this checkout linked (`herdr plugin list` shows `local.agent-rename` pointing to `/home/dwchoo/herdr-rename-agent`). The runtime Python code at HEAD therefore already runs the next time a shortcut is pressed. Version 0.2.0 was deployed on 2026-10-11 by running `bin/install` against the user's live Herdr.
+- Manifest changes (rename popup 57x7, sync popup `"80%"` x `"70%"`, new action descriptions) take effect only after a config reload, which `bin/install` performed on 2026-10-11. `herdr plugin action list --plugin local.agent-rename` now shows the 0.2.0 descriptions ("Copy explicit pane names to agent names across the current workspace after confirmation.", title "Set agent names from pane names").
+- `bin/install` kept the existing `local.agent-rename.open` and `.sync` bindings and did not change the config file content; it reloaded the config. The stale untracked `dist/` folder (0.1.0 tarball and SHA256SUMS) was deleted. The user reported the dialogs work well in real use.
 - Develop future changes in a separate git worktree so that the linked checkout stays stable.
 - Rollback: `git checkout v0.1.0 && bin/setup && bin/install` ([INSTALL.md](INSTALL.md#roll-back)).
 
@@ -262,7 +262,7 @@ Keep the current installation working until the new version passes all gates. De
 | P1: Sync | `theme.py`; workspace planner/executor; sync dialog with fixed Yes/No; feedback paths. | **Done.** Planner, conflict and executor unit tests; sandbox S01-S07 and S10-S29 (27 scenarios; keyboard and mouse Yes/No, Yes regression S11-S17, stale previews S26-S27, Stop S28-S29). |
 | P2: Rename parity | `editor.py` port; rename dialog rewrite; `--clear`; D7 rules. | **Done.** Editor tests derived from `text_editor.rs`; sandbox R01-R13 and T01-T04 captures. |
 | P3: Docs and packaging | `regex` in the dependency lock, LICENSE/notices, README/INSTALL updates. | **Done.** `regex==2026.8.31` locked; LICENSE (Apache-2.0), THIRD_PARTY_NOTICES.md, README, INSTALL, docs; 41 installer tests pass; sandbox lifecycle L01-L09 (including in-place update and `v0.1.0` rollback). |
-| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Partly done.** `next` suite: 104 scenarios, 104 pass, 0 fail, 0 error, 0 skip (S 27, R 13, T 4, L 9, H 1, F 17, X 27, E 6; every section 10 row mapped to sandbox scenarios in [docs/verification-coverage.md](docs/verification-coverage.md); fault injection, handoff tampering and target-change scenarios F/X/E run through the sandbox CLI shim, as do H01, S07, S28 and S29). Unit suite 464 passed. `v0.1.0` tag exists. **Pending:** `bin/setup`, `bin/install` and config reload on the user's Herdr, which need the user's authorization (see Deployment state). |
+| P4: E2E and deploy | Full sandbox E2E, docs/results, `v0.1.0` rollback tag, then update the user's environment with `bin/install`. | **Done.** `next` suite: 104 scenarios, 104 pass, 0 fail, 0 error, 0 skip (S 27, R 13, T 4, L 9, H 1, F 17, X 27, E 6; every section 10 row mapped to sandbox scenarios in [docs/verification-coverage.md](docs/verification-coverage.md); fault injection, handoff tampering and target-change scenarios F/X/E run through the sandbox CLI shim, as do H01, S07, S28 and S29). Unit suite 464 passed. `v0.1.0` tag exists. **Deployed 2026-10-11:** `bin/install` ran on the user's Herdr with the user's authorization; bindings kept, config reloaded, 0.2.0 action descriptions confirmed (see Deployment state). |
 
 A passing old suite or a rendered test buffer alone does not complete a stage.
 
@@ -301,9 +301,9 @@ A Rust rewrite was planned earlier the same day and rejected. Its benefits were 
 
 Rust development tools were installed while the Rust plan was active: rustup in `~/.cargo`/`~/.rustup` with `~/.cargo/env` sourced from `~/.profile` and `~/.bashrc`. They are user-level and kept. The checkout-level Rust artifacts from that setup (`rust-toolchain.toml`, `docs/development.md`, the `target/` line in `.gitignore`, and the Rust note in README.md) were removed on 2026-10-10.
 
-## 13. Implementation assumptions
+## 13. Implementation assumptions (confirmed by the user, 2026-10-11)
 
-Decisions made while implementing, where the plan was silent or R1 changed the facts:
+Decisions made while implementing, where the plan was silent or R1 changed the facts. The user confirmed the three UI assumptions below (Enter/Space ignored while a batch runs; y/Y triggers Yes directly; minimum popup PTY 40x10 with a resize message) on 2026-10-11.
 
 - Enter and Space are ignored while a sync batch runs, so a repeated key cannot trigger Stop by accident. Stop, Esc and Ctrl+C request cancellation.
 - `y`/`Y` triggers Yes directly in confirm mode, as the plan lists. Keys typed before the popup exists go to the underlying pane, not the popup.
