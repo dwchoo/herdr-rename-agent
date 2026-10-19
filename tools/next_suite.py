@@ -26,6 +26,7 @@ import tomllib
 import traceback
 
 from herdr_lab import Lab, PALETTES, find
+from verify_herdr import herdr_version
 
 Scenario = namedtuple("Scenario", "id title theme size spec fn")
 SCENARIOS: list[Scenario] = []
@@ -1205,7 +1206,7 @@ def run_suite(out: Path, codex_arguments, only: list[str] | None = None) -> int:
             lab.finish()
     counts = {k: sum(r["result"] == k for r in results) for k in ("pass", "fail", "error", "skip")}
     (out / "actual-results.json").write_text(json.dumps({
-        "suite": "next", "date": datetime.now().astimezone().isoformat(), "herdr_version": "0.9.3",
+        "suite": "next", "date": datetime.now().astimezone().isoformat(), "herdr_version": herdr_version(),
         "terminal": "PTY xterm-256color, truecolor, default 100x32", "assertions": "PLAN sections 6, 10 (planned behavior)",
         "counts": counts, "setup_checks": setup_checks, "scenarios": results,
     }, indent=2) + "\n")

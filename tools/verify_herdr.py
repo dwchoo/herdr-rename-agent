@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import pty
+import re
 import select
 import shutil
 import struct
@@ -32,6 +33,17 @@ class TerminalScreen(pyte.Screen):
     def report_device_status(self, mode, private=False):
         if not private:
             return super().report_device_status(mode)
+
+
+def herdr_version(binary: str | None = None) -> str:
+    """Bare version (e.g. ``0.9.5``) reported by the Herdr binary the suites run, or ``unknown``."""
+    try:
+        output = subprocess.run([binary or shutil.which("herdr"), "--version"], stdin=subprocess.DEVNULL,
+                                capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError, TypeError):
+        return "unknown"
+    found = re.search(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]*)?", output)
+    return found.group(0) if found else "unknown"
 
 
 class Verification:
@@ -363,7 +375,7 @@ command = "true"
                 os.waitpid(self.pid, 0)
             except ChildProcessError:
                 pass
-        (self.destination.parent / "actual-results.json").write_text(json.dumps({"herdr_version": "0.9.3", "codex_arguments": self.codex_arguments, "terminal": "PTY xterm-256color, truecolor", "cells": "100x32", "theme": "default catppuccin", "captures": "Reconstructed from actual client VT100 cells; no OS compositor screenshot", "scenarios": self.results}, indent=2) + "\n")
+        (self.destination.parent / "actual-results.json").write_text(json.dumps({"herdr_version": herdr_version(self.binary), "codex_arguments": self.codex_arguments, "terminal": "PTY xterm-256color, truecolor", "cells": "100x32", "theme": "default catppuccin", "captures": "Reconstructed from actual client VT100 cells; no OS compositor screenshot", "scenarios": self.results}, indent=2) + "\n")
         shutil.rmtree(self.base)
 
 

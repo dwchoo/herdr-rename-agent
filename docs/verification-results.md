@@ -109,7 +109,7 @@ The 0.2.0 code (unchanged) was re-verified against Herdr 0.9.5 (a hotfix on top 
 | `.venv/bin/python -m pytest -q` | 464 passed |
 | `.venv/bin/python tools/verify_sandbox.py --run --suite next --next-output <scratch dir>` | 104 pass, 0 fail, 0 error, 0 skip in 10 min 41 s; same 104 of 104 as on 0.9.3; isolation records Herdr 0.9.5 and Codex 0.163.0 |
 
-Evidence: [actual-results.json](sandbox-next/herdr-0.9.5/actual-results.json), [isolation.json](sandbox-next/herdr-0.9.5/isolation.json), [run.json](sandbox-next/herdr-0.9.5/run.json) (captures were not kept; the 0.9.3 captures stay in [sandbox-next/](sandbox-next/)). The `herdr_version` field in that `actual-results.json` reads `0.9.3` because `tools/next_suite.py` writes a fixed label; `isolation.json` records the binary that actually ran (0.9.5). The 0.9.5 shortcuts were not pressed in the live Herdr, so a live manual smoke test on 0.9.5 has not been done.
+Evidence: [actual-results.json](sandbox-next/herdr-0.9.5/actual-results.json), [isolation.json](sandbox-next/herdr-0.9.5/isolation.json), [run.json](sandbox-next/herdr-0.9.5/run.json) (captures were not kept; the 0.9.3 captures stay in [sandbox-next/](sandbox-next/)). The `herdr_version` field in that `actual-results.json` reads `0.9.3` because `tools/next_suite.py` wrote a fixed label at the time; `isolation.json` records the binary that actually ran (0.9.5). Both result writers (`tools/next_suite.py`, `tools/verify_herdr.py`) now record the version of the Herdr binary that ran. Live manual smoke test on 0.9.5 (2026-10-19, user-reported): prefix+Shift+A (rename) and prefix+Shift+S (sync) both work.
 
 # Historical: v0.1.0 results (2026-10-10, single-pane runtime at `d5cd79f`)
 
