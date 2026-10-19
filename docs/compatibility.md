@@ -2,7 +2,7 @@
 
 ## Baseline
 
-The initial baseline is Linux, Python 3.11+, and the installed `herdr 0.9.3` executable. The manifest declares `min_herdr_version = "0.9.3"` and `platforms = ["linux"]`. The launcher also checks the version and required schema capabilities (below). Newer version strings and schema shapes are tolerated when the capabilities match; unknown session kinds on other agents do not block sync. A newer version is eligible for verification, not automatically certified. Windows and macOS are outside this release's scope.
+The initial baseline is Linux, Python 3.11+, and the installed `herdr 0.9.3` executable. The manifest declares `min_herdr_version = "0.9.3"` and `platforms = ["linux"]`. The launcher also checks the version and required schema capabilities (below). Newer version strings and schema shapes are tolerated when the capabilities match; unknown session kinds on other agents do not block sync. A newer version is eligible for verification, not automatically certified. Verified versions: 0.9.3 (baseline) and 0.9.5 (2026-10-19; schema identical to the 0.9.3 fixture, CLI help unchanged for every command used, 464 unit tests and the 104-scenario sandbox suite pass; see [verification-results.md](verification-results.md#addendum-herdr-095-2026-10-19)). The read-only part of this check is automated by the `herdr-compat-check` skill (`.agents/skills/herdr-compat-check/`). Windows and macOS are outside this release's scope.
 
 See [verification-results.md](verification-results.md) for observed outcomes. A schema/help check, source review, or mocked test must not be reported as a completed interactive UI check.
 

@@ -7,6 +7,7 @@ Status: implemented and verified, 2026-10-11 (HEAD `b9c946c`, version 0.2.0), in
 - The user's live Herdr has this checkout linked (`herdr plugin list` shows `local.agent-rename` pointing to `/home/dwchoo/herdr-rename-agent`). The runtime Python code at HEAD therefore already runs the next time a shortcut is pressed. Version 0.2.0 was deployed on 2026-10-11 by running `bin/install` against the user's live Herdr.
 - Manifest changes (rename popup 57x7, sync popup `"80%"` x `"70%"`, new action descriptions) take effect only after a config reload, which `bin/install` performed on 2026-10-11. `herdr plugin action list --plugin local.agent-rename` now shows the 0.2.0 descriptions ("Copy explicit pane names to agent names across the current workspace after confirmation.", title "Set agent names from pane names").
 - `bin/install` kept the existing `local.agent-rename.open` and `.sync` bindings and did not change the config file content; it reloaded the config. The stale untracked `dist/` folder (0.1.0 tarball and SHA256SUMS) was deleted. The user reported the dialogs work well in real use.
+- Herdr 0.9.5 (2026-10-19): the same 0.2.0 code was re-verified (schema identical to 0.9.3, 464 unit tests, sandbox `next` 104 of 104; see [verification-results](docs/verification-results.md#addendum-herdr-095-2026-10-19)). A live manual smoke test on 0.9.5 has not been done.
 - Develop future changes in a separate git worktree so that the linked checkout stays stable.
 - Rollback: `git checkout v0.1.0 && bin/setup && bin/install` ([INSTALL.md](INSTALL.md#roll-back)).
 

@@ -1,0 +1,71 @@
+{
+  "mode": "Linux bubblewrap with --unshare-all and clean environment",
+  "home": "/sandbox/home",
+  "network_interfaces": [
+    "lo"
+  ],
+  "namespaces": {
+    "pid": {
+      "host": "pid:[4026531836]",
+      "sandbox": "pid:[4026532638]"
+    },
+    "net": {
+      "host": "net:[4026531833]",
+      "sandbox": "net:[4026532640]"
+    },
+    "mnt": {
+      "host": "mnt:[4026531832]",
+      "sandbox": "mnt:[4026532633]"
+    }
+  },
+  "read_only_write_probes": {
+    "/opt/bin/herdr": {
+      "read_only_mount": true,
+      "write_open_denied": true,
+      "errno": 26
+    },
+    "/opt/bin/codex": {
+      "read_only_mount": true,
+      "write_open_denied": true,
+      "errno": 26
+    },
+    "/usr/bin/true": {
+      "read_only_mount": true,
+      "write_open_denied": true,
+      "errno": 13
+    },
+    "/home/dwchoo/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14": {
+      "read_only_mount": true,
+      "write_open_denied": true,
+      "errno": 26
+    }
+  },
+  "checks": {
+    "empty_home": true,
+    "host_paths_hidden": true,
+    "network_loopback_only": true,
+    "separate_pid_namespace": true,
+    "separate_namespaces": true,
+    "runtime_mounts_read_only": true,
+    "copied_checkout_writable": true,
+    "credentials_not_in_environment": true
+  },
+  "writable_mounts": [
+    "/workspace/agent-rename",
+    "/tmp",
+    "/sandbox/home"
+  ],
+  "read_only_mounts": [
+    "system runtime directories",
+    "Herdr/Codex binaries",
+    "Python runtime and venv"
+  ],
+  "model_prompt_submitted": false,
+  "user_codex_credentials_mounted": false,
+  "versions": {
+    "python": "3.14.7",
+    "herdr": "herdr 0.9.5",
+    "codex": "codex-cli 0.163.0"
+  },
+  "scope": "Local PTY/process/API behavior with a test-only no-auth provider; remote model operation is not exercised"
+}

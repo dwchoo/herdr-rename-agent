@@ -97,6 +97,20 @@ Remaining differences, not hidden by the checks:
 
 ---
 
+## Addendum: Herdr 0.9.5 (2026-10-19)
+
+The 0.2.0 code (unchanged) was re-verified against Herdr 0.9.5 (a hotfix on top of 0.9.4; protocol 22, `endpoint_compatible` and `private_protocol_compatible` both yes). The 2026-10-11 results above remain the 0.9.3 record. Release notes list only prefix shortcuts for terminals that send the next key as plain text, a Codex hook warning (Herdr no longer installs Codex turn hooks), a Claude Code blocked state in named sessions, and Windows-only fixes.
+
+| Check | Result |
+| --- | --- |
+| `herdr api schema --json` against [schema-0.9.3.json](../tests/fixtures/schema-0.9.3.json) | 0 removed, 0 changed, 0 added keys (only the `protocol` value differs); all required methods and fields present, so no 0.9.5 fixture was added |
+| `--help` of every CLI command the plugin uses | matches [compatibility.md](compatibility.md) |
+| Live install (read-only inspection) | `local.agent-rename` enabled, actions open/sync registered, key bindings intact |
+| `.venv/bin/python -m pytest -q` | 464 passed |
+| `.venv/bin/python tools/verify_sandbox.py --run --suite next --next-output <scratch dir>` | 104 pass, 0 fail, 0 error, 0 skip in 10 min 41 s; same 104 of 104 as on 0.9.3; isolation records Herdr 0.9.5 and Codex 0.163.0 |
+
+Evidence: [actual-results.json](sandbox-next/herdr-0.9.5/actual-results.json), [isolation.json](sandbox-next/herdr-0.9.5/isolation.json), [run.json](sandbox-next/herdr-0.9.5/run.json) (captures were not kept; the 0.9.3 captures stay in [sandbox-next/](sandbox-next/)). The `herdr_version` field in that `actual-results.json` reads `0.9.3` because `tools/next_suite.py` writes a fixed label; `isolation.json` records the binary that actually ran (0.9.5). The 0.9.5 shortcuts were not pressed in the live Herdr, so a live manual smoke test on 0.9.5 has not been done.
+
 # Historical: v0.1.0 results (2026-10-10, single-pane runtime at `d5cd79f`)
 
 The rest of this file records the previous release. Its commands (`tools/verify_herdr.py`, `verify_sandbox.py --run` with the default old suite) and UI descriptions (Apply/Cancel, per-pane sync, no clear action) do not describe the current dialogs.

@@ -23,7 +23,7 @@ Status: implemented and verified in an isolated sandbox (464 unit tests; 104 of 
 
 ## Requirements
 
-Linux, Herdr 0.9.3 or newer with a running server (0.9.3 is the only verified version), Python 3.11 or newer, and either `uv` or Python's `venv`/`pip` (on some distributions that means `python3-venv`). Runtime dependencies are hash-locked in `requirements.lock`: `prompt_toolkit`, `wcwidth`, `regex` (grapheme segmentation for the editor) and `tomlkit` (installer). Compatibility baseline and public API limits: [compatibility](docs/compatibility.md).
+Linux, Herdr 0.9.3 or newer with a running server (verified on 0.9.3, the baseline, and 0.9.5), Python 3.11 or newer, and either `uv` or Python's `venv`/`pip` (on some distributions that means `python3-venv`). Runtime dependencies are hash-locked in `requirements.lock`: `prompt_toolkit`, `wcwidth`, `regex` (grapheme segmentation for the editor) and `tomlkit` (installer). Compatibility baseline and public API limits: [compatibility](docs/compatibility.md).
 
 ## Local setup
 

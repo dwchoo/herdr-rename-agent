@@ -12,7 +12,7 @@ For removal:
 
 ## Install
 
-Requirements: Linux, Herdr 0.9.3 or newer with a running target server, Python 3.11+, and `uv` or working Python `venv`/`pip`. The verified baseline is Herdr 0.9.3. Keep this checkout in place while linked.
+Requirements: Linux, Herdr 0.9.3 or newer with a running target server, Python 3.11+, and `uv` or working Python `venv`/`pip`. The verified baseline is Herdr 0.9.3; the plugin was also verified on Herdr 0.9.5 (2026-10-19, see [verification results](docs/verification-results.md)). Keep this checkout in place while linked.
 
 ```bash
 cd /absolute/path/to/herdr-rename-agent

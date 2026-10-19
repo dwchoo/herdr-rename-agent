@@ -1,0 +1,1284 @@
+{
+  "suite": "next",
+  "date": "2026-10-19T12:28:05.172644+09:00",
+  "herdr_version": "0.9.3",
+  "terminal": "PTY xterm-256color, truecolor, default 100x32",
+  "assertions": "PLAN sections 6, 10 (planned behavior)",
+  "counts": {
+    "pass": 104,
+    "fail": 0,
+    "error": 0,
+    "skip": 0
+  },
+  "setup_checks": {
+    "catppuccin": [
+      {
+        "scenario": "One-command install migrates legacy popup",
+        "result": "Passed",
+        "details": ""
+      },
+      {
+        "scenario": "Repeated install keeps one binding per action and recovery record",
+        "result": "Passed",
+        "details": ""
+      },
+      {
+        "scenario": "Install/uninstall previews leave config and registration intact",
+        "result": "Passed",
+        "details": ""
+      }
+    ],
+    "lifecycle": [],
+    "dracula": [
+      {
+        "scenario": "One-command install migrates legacy popup",
+        "result": "Passed",
+        "details": ""
+      },
+      {
+        "scenario": "Repeated install keeps one binding per action and recovery record",
+        "result": "Passed",
+        "details": ""
+      },
+      {
+        "scenario": "Install/uninstall previews leave config and registration intact",
+        "result": "Passed",
+        "details": ""
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "Sync covers every tab of the workspace; second workspace unchanged",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S01-dialog",
+        "S01-after"
+      ],
+      "seconds": 4.9
+    },
+    {
+      "id": "S02",
+      "title": "Mixed rows: valid, unnamed pane, agent-less pane, invalid label, matching",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S02-dialog",
+        "S02-after"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "S03",
+      "title": "Unnamed agent receives a valid explicit pane label",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S03-dialog",
+        "S03-after"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "S04",
+      "title": "Duplicate desired labels: neither wins, independent row still applies",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S04-dialog",
+        "S04-after"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "S05",
+      "title": "Desired name held in another workspace is a conflict; independent row applies",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S05-dialog",
+        "S05-after"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "S06",
+      "title": "Conflict-only workspace opens an information popup with Close and no writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S06-dialog"
+      ],
+      "seconds": 2.2
+    },
+    {
+      "id": "H01",
+      "title": "Harness self-test: the CLI shim logs plugin calls, is transparent, and delays only agent rename on request",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.5
+    },
+    {
+      "id": "S07",
+      "title": "No eligible rows: notification, no popup, no writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S07-after"
+      ],
+      "seconds": 1.8
+    },
+    {
+      "id": "S10",
+      "title": "Default No + Enter sends zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S10-dialog",
+        "S10-after"
+      ],
+      "seconds": 3.4
+    },
+    {
+      "id": "S11",
+      "title": "Tab then Enter applies",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S11-dialog",
+        "S11-after"
+      ],
+      "seconds": 5.1
+    },
+    {
+      "id": "S12",
+      "title": "Left then Enter applies (Left selects Yes)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S12-dialog",
+        "S12-after"
+      ],
+      "seconds": 5.1
+    },
+    {
+      "id": "S13",
+      "title": "Right/Left toggle selection; Right then Enter is No or Yes consistently (no write unless Yes shown selected)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 5.6
+    },
+    {
+      "id": "S14",
+      "title": "Y key applies",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S14-dialog",
+        "S14-after"
+      ],
+      "seconds": 4.9
+    },
+    {
+      "id": "S15",
+      "title": "N key cancels with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S15-dialog",
+        "S15-after"
+      ],
+      "seconds": 3.5
+    },
+    {
+      "id": "S16",
+      "title": "Esc and Ctrl+C cancel with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S16-dialog",
+        "S16-after",
+        "S16-dialog",
+        "S16-after"
+      ],
+      "seconds": 6.3
+    },
+    {
+      "id": "S17",
+      "title": "Mouse click on Yes applies",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S17-dialog",
+        "S17-after"
+      ],
+      "seconds": 4.8
+    },
+    {
+      "id": "S18",
+      "title": "Mouse click on No cancels with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S18-dialog",
+        "S18-after"
+      ],
+      "seconds": 3.5
+    },
+    {
+      "id": "S19",
+      "title": "Repeated Enter/Y and double-click do not start a second batch",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S19-dialog",
+        "S19-after",
+        "S19-dialog",
+        "S19-after",
+        "S19-dialog",
+        "S19-after"
+      ],
+      "seconds": 15.2
+    },
+    {
+      "id": "S20",
+      "title": "Sync dialog after completion shows totals and a Close button",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S20-before",
+        "S20-after"
+      ],
+      "seconds": 3.9
+    },
+    {
+      "id": "S21",
+      "title": "Focus change while the popup is open does not retarget the batch (skipped if Herdr closes the popup)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 5.2
+    },
+    {
+      "id": "S22",
+      "title": "Sync small terminal: buttons reachable or popup cancels safely with zero writes",
+      "theme": "catppuccin",
+      "size": "60x16",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S22-small"
+      ],
+      "seconds": 2.9
+    },
+    {
+      "id": "R01",
+      "title": "Enter saves a typed name; only the agent name changes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R01-open"
+      ],
+      "seconds": 3.4
+    },
+    {
+      "id": "R02",
+      "title": "Leading/trailing whitespace is trimmed on save",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.8
+    },
+    {
+      "id": "R03",
+      "title": "Ctrl+C clears the input only: popup stays open, nothing written",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R03-cleared"
+      ],
+      "seconds": 2.8
+    },
+    {
+      "id": "R04",
+      "title": "Saving an empty input clears the explicit name (--clear)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.7
+    },
+    {
+      "id": "R05",
+      "title": "Esc cancels without writing",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.7
+    },
+    {
+      "id": "R06",
+      "title": "Mouse click on save writes the name",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R06-typed"
+      ],
+      "seconds": 2.8
+    },
+    {
+      "id": "R07",
+      "title": "Mouse click on clear empties the input only; Enter then clears the name",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R07-cleared"
+      ],
+      "seconds": 3.0
+    },
+    {
+      "id": "R08",
+      "title": "Mouse click on cancel closes without writing",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.6
+    },
+    {
+      "id": "R09",
+      "title": "Click on a non-button cell cancels (native: click outside the dialog box)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R09-after"
+      ],
+      "seconds": 2.1
+    },
+    {
+      "id": "R10",
+      "title": "Invalid paste (newline, control char) keeps the dialog and writes nothing",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R10-newline",
+        "R10-control"
+      ],
+      "seconds": 5.1
+    },
+    {
+      "id": "R11",
+      "title": "Name held by another agent shows an error, keeps input, writes nothing",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R11-duplicate"
+      ],
+      "seconds": 3.6
+    },
+    {
+      "id": "R12",
+      "title": "Rename dialog in a small terminal cancels safely",
+      "theme": "catppuccin",
+      "size": "40x10",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R12-small"
+      ],
+      "seconds": 2.7
+    },
+    {
+      "id": "S23",
+      "title": "Sync popup at an 80-column client lays out the table with visible Yes/No",
+      "theme": "catppuccin",
+      "size": "80x24",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S23-80cols"
+      ],
+      "seconds": 3.0
+    },
+    {
+      "id": "S24",
+      "title": "Sync popup at a narrow client (50 columns) shows the resize message; Y/Enter ignored; Esc cancels",
+      "theme": "catppuccin",
+      "size": "50x20",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S24-narrow"
+      ],
+      "seconds": 5.0
+    },
+    {
+      "id": "S25",
+      "title": "Resize while the sync popup is open: re-layout, controls visible, Yes still applies",
+      "theme": "catppuccin",
+      "size": "80x24",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S25-large",
+        "S25-done"
+      ],
+      "seconds": 9.4
+    },
+    {
+      "id": "S26",
+      "title": "Stale preview: changed label, closed pane and renamed agent are skipped with reasons; others sync",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S26-dialog",
+        "S26-after"
+      ],
+      "seconds": 11.7
+    },
+    {
+      "id": "S27",
+      "title": "Label cleared after the preview opened: the row is skipped, no write with the old label",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S27-after"
+      ],
+      "seconds": 6.0
+    },
+    {
+      "id": "S28",
+      "title": "Cancel during application: Stop leaves later rows not attempted and the in-flight row finished",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S28-stop"
+      ],
+      "seconds": 18.9
+    },
+    {
+      "id": "S29",
+      "title": "Stop requested together with Yes: nothing half-applied, canceled rows reported not attempted",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "S29-stop"
+      ],
+      "seconds": 17.4
+    },
+    {
+      "id": "R13",
+      "title": "Resize while the rename popup is open: input preserved, buttons visible, save still works",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "R13-resized",
+        "R13-narrow"
+      ],
+      "seconds": 9.6
+    },
+    {
+      "id": "T01",
+      "title": "Default theme (catppuccin) captures and palette colors",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "T01-rename",
+        "T01-sync"
+      ],
+      "seconds": 3.7
+    },
+    {
+      "id": "T03",
+      "title": "Native pane rename overlay and plugin rename popup match (catppuccin, 100x32)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "native-pane-rename-catppuccin",
+        "plugin-rename-catppuccin",
+        "parity-catppuccin"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "F01",
+      "title": "Connection lost between rows: the next row fails with an English reason, the queue stops, no extra write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F01-done"
+      ],
+      "seconds": 4.9
+    },
+    {
+      "id": "F02",
+      "title": "Write fails in transit and the connection stays down: row uncertain, nothing retried, rest not attempted",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F02-done"
+      ],
+      "seconds": 5.0
+    },
+    {
+      "id": "F03",
+      "title": "Write fails in transit but reads work: the unchanged name makes the row uncertain and stops the queue",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F03-done"
+      ],
+      "seconds": 5.0
+    },
+    {
+      "id": "F04",
+      "title": "A definite failure of one row does not stop the independent rows",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F04-done"
+      ],
+      "seconds": 5.5
+    },
+    {
+      "id": "F05",
+      "title": "Write applied but response lost: the row is reconciled by a read and never written twice",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F05-done"
+      ],
+      "seconds": 5.5
+    },
+    {
+      "id": "F06",
+      "title": "Write applied but the call times out: reconciled by a read, not repeated",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F06-done"
+      ],
+      "seconds": 10.5
+    },
+    {
+      "id": "F07",
+      "title": "Rename dialog: write applied, response lost; Enter again reconciles without a second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F07-uncertain"
+      ],
+      "seconds": 3.7
+    },
+    {
+      "id": "F08",
+      "title": "Rename dialog --clear: write applied, response lost; Enter again reconciles without a second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.5
+    },
+    {
+      "id": "F09",
+      "title": "Rename dialog: after an unconfirmed write the name was changed elsewhere; retry refuses, no second write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F09-refused"
+      ],
+      "seconds": 9.9
+    },
+    {
+      "id": "F10",
+      "title": "Sync with a malformed pane list: English error notification, no popup, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.5
+    },
+    {
+      "id": "F11",
+      "title": "Sync with an unknown envelope type or a missing list in the agent list: error, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 6.5
+    },
+    {
+      "id": "F12",
+      "title": "Sync when every pane lookup returns malformed data: information popup with lookup failures, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F12-dialog"
+      ],
+      "seconds": 3.6
+    },
+    {
+      "id": "F13",
+      "title": "Rename dialog with malformed or unknown lookup data: visible English error, nothing can be written",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F13-malformed",
+        "F13-unknown"
+      ],
+      "seconds": 4.9
+    },
+    {
+      "id": "F14",
+      "title": "Per-pane read failures give lookup-failed rows while the other rows still sync",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F14-dialog"
+      ],
+      "seconds": 4.9
+    },
+    {
+      "id": "F15",
+      "title": "Unsupported capabilities (no pane.list, no agent.list, no --clear): clear outcome, zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 13.4
+    },
+    {
+      "id": "F16",
+      "title": "Older Herdr (0.9.2) is refused with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 4.5
+    },
+    {
+      "id": "F17",
+      "title": "Newer Herdr version string with a compatible schema works normally (sync and rename)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "F17-done"
+      ],
+      "seconds": 7.8
+    },
+    {
+      "id": "X01",
+      "title": "Rename dialog: the target pane is closed between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X01-refused"
+      ],
+      "seconds": 10.0
+    },
+    {
+      "id": "X02",
+      "title": "Rename dialog: the target pane is moved to another tab; refused, never followed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X02-refused"
+      ],
+      "seconds": 10.1
+    },
+    {
+      "id": "X03",
+      "title": "Rename dialog: the agent exits between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X03-refused"
+      ],
+      "seconds": 10.6
+    },
+    {
+      "id": "X04",
+      "title": "Rename dialog: the agent is restarted (replaced) between open and Enter; refused, no write",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X04-refused"
+      ],
+      "seconds": 14.5
+    },
+    {
+      "id": "X05",
+      "title": "Sync: a pane is moved to another tab after the preview; skipped, the pane is not followed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X05-done"
+      ],
+      "seconds": 12.5
+    },
+    {
+      "id": "X06",
+      "title": "Sync: an agent exits after the preview; its row is skipped, others sync",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X06-done"
+      ],
+      "seconds": 13.1
+    },
+    {
+      "id": "X07",
+      "title": "Sync: an agent is replaced (same name, new process) after the preview; skipped, not renamed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X07-done"
+      ],
+      "seconds": 17.2
+    },
+    {
+      "id": "X08",
+      "title": "Sync: a swap is skipped (no temporary clears) while an independent row syncs",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X08-done"
+      ],
+      "seconds": 4.6
+    },
+    {
+      "id": "X09",
+      "title": "Sync: a 4-cycle of names is a conflict-only information popup with zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.3
+    },
+    {
+      "id": "X10",
+      "title": "Sync: a pane that arrives in the workspace after the preview is not added",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 14.7
+    },
+    {
+      "id": "X11",
+      "title": "Sync scrolling in a short client keeps Yes/No visible; the last row is reachable; Y still applies",
+      "theme": "catppuccin",
+      "size": "100x24",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X11-top",
+        "X11-bottom"
+      ],
+      "seconds": 6.9
+    },
+    {
+      "id": "X13",
+      "title": "Large multi-pane sync plan travels through the private file; file is 0600 and removed once consumed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X13-dialog"
+      ],
+      "seconds": 5.9
+    },
+    {
+      "id": "X14",
+      "title": "Large rename snapshot travels through the private file, is consumed and removed, and the rename works",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 2.9
+    },
+    {
+      "id": "X15",
+      "title": "Plan above 4 MiB: clear English error, no popup, zero writes, no file left",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 8.0
+    },
+    {
+      "id": "X16",
+      "title": "Tampered handoff: file mode changed to 0644 is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X16-refused"
+      ],
+      "seconds": 3.5
+    },
+    {
+      "id": "X17",
+      "title": "Tampered handoff: file replaced by a symlink is refused, never followed, its target untouched",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X17-refused"
+      ],
+      "seconds": 3.4
+    },
+    {
+      "id": "X18",
+      "title": "Tampered handoff: garbage content is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X18-refused"
+      ],
+      "seconds": 3.4
+    },
+    {
+      "id": "X19",
+      "title": "Tampered handoff: truncated content is refused with an error; the file is removed; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X19-refused"
+      ],
+      "seconds": 3.4
+    },
+    {
+      "id": "X20",
+      "title": "Tampered handoff: a second hard link (link count 2) is refused; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X20-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X21",
+      "title": "Tampered handoff: well-formed JSON for another workspace is refused; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X21-refused"
+      ],
+      "seconds": 3.3
+    },
+    {
+      "id": "X22",
+      "title": "Tampered handoff: a pointer to another directory is refused; the file is not touched; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X22-refused"
+      ],
+      "seconds": 3.8
+    },
+    {
+      "id": "X23",
+      "title": "Tampered handoff: a path-traversal pointer name is refused; the file is not touched; zero writes",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X23-refused"
+      ],
+      "seconds": 3.8
+    },
+    {
+      "id": "X24",
+      "title": "Popup launch failure after a large handoff: no popup, no writes, the private file is removed",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 3.8
+    },
+    {
+      "id": "X25",
+      "title": "Sync context: workspace-only and pane-only contexts work; missing or malformed context is refused",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "X25-workspace-only",
+        "X25-pane-only"
+      ],
+      "seconds": 5.0
+    },
+    {
+      "id": "X26",
+      "title": "Frozen context wins over later focus: sync of workspace 1 while workspace 2 is focused; rename of pane a while b is focused",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 8.4
+    },
+    {
+      "id": "X27",
+      "title": "Rename dialog process restores every terminal mode on success, cancel, error screen and a crash",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 7.5
+    },
+    {
+      "id": "X28",
+      "title": "Sync dialog process restores every terminal mode on success, cancel, error screen and a crash",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 10.2
+    },
+    {
+      "id": "E01",
+      "title": "Editor: opens at the end with the name (typing appends: no replace-on-type); char/word/Home/End movement",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E01-end"
+      ],
+      "seconds": 7.9
+    },
+    {
+      "id": "E02",
+      "title": "Editor: every kill and yank key (Ctrl+W/K/U/Y/D, Alt+D, Alt+Backspace, Delete, Backspace)",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E02-end"
+      ],
+      "seconds": 8.0
+    },
+    {
+      "id": "E03",
+      "title": "Editor: grapheme clusters (combining marks, CJK, emoji with skin-tone modifier) move and delete as units",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E03-end"
+      ],
+      "seconds": 6.7
+    },
+    {
+      "id": "E04",
+      "title": "Editor: long text scrolls the viewport with the cursor, matching the model",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E04-end",
+        "E04-home"
+      ],
+      "seconds": 17.2
+    },
+    {
+      "id": "E05",
+      "title": "Editor paste: CR, LF, CRLF and Tab become spaces, other controls become U+FFFD, nothing is written",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E05-pasted"
+      ],
+      "seconds": 4.4
+    },
+    {
+      "id": "E06",
+      "title": "Editor with an absent name: empty input and hint; empty Enter is a no-op; a typed name sets it",
+      "theme": "catppuccin",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "E06-open"
+      ],
+      "seconds": 4.4
+    },
+    {
+      "id": "L01",
+      "title": "Installer dry-run on a fresh sandbox config previews the edit and changes nothing",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 0.6
+    },
+    {
+      "id": "L02",
+      "title": "Fresh bin/install: legacy popup migrated, two plugin_action bindings, registered from this checkout",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 0.5
+    },
+    {
+      "id": "L03",
+      "title": "Both shortcuts open the new dialogs after install; cancelling writes nothing",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "L03-rename",
+        "L03-sync"
+      ],
+      "seconds": 7.6
+    },
+    {
+      "id": "L04",
+      "title": "Repeated install keeps one binding per action, the same recovery record and one registration",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 0.8
+    },
+    {
+      "id": "L05",
+      "title": "Rollback: v0.1.0 is refused over a registration from another checkout; new -> v0.1.0 -> new keeps the bindings",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "L05-legacy-rename"
+      ],
+      "seconds": 4.5
+    },
+    {
+      "id": "L09",
+      "title": "In-place update: v0.1.0 installed from a tree, the tree is replaced by the current code, bin/install again keeps one binding per action and the recovery record, and the new dialogs open",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "L09-sync"
+      ],
+      "seconds": 4.7
+    },
+    {
+      "id": "L06",
+      "title": "Later user edits survive bin/uninstall; only plugin bindings go and the legacy popup returns",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 1.5
+    },
+    {
+      "id": "L07",
+      "title": "Repeated uninstall is harmless",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 0.6
+    },
+    {
+      "id": "L08",
+      "title": "Existing recovery record is retained when a newer user binding blocks restoration",
+      "theme": "lifecycle",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [],
+      "seconds": 0.8
+    },
+    {
+      "id": "T02",
+      "title": "Dracula theme captures and palette colors",
+      "theme": "dracula",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "T02-rename",
+        "T02-sync"
+      ],
+      "seconds": 3.7
+    },
+    {
+      "id": "T04",
+      "title": "Native pane rename overlay and plugin rename popup match (dracula, 100x32)",
+      "theme": "dracula",
+      "size": "100x32",
+      "result": "pass",
+      "details": "",
+      "captures": [
+        "native-pane-rename-dracula",
+        "plugin-rename-dracula",
+        "parity-dracula"
+      ],
+      "seconds": 3.3
+    }
+  ]
+}
